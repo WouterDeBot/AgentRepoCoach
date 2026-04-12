@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Language adapters for C# and Python (full); stubs for TypeScript, Rust, Go
 - JSON and Markdown output formats
 - Three example workflow files: basic-scoring, pr-gate, scheduled-report
-- Jekyll documentation site under `docs-site/`
+- Jekyll documentation site under `docs/`
 - Comprehensive test suite with synthetic fixture repos (35 tests)
 
 ### Security
