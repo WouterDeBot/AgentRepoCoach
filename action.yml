@@ -1,0 +1,107 @@
+name: 'AgentRepoCoach — AI agent codebase health scoring'
+description: 'Score a repository on how ready it is for autonomous AI agents using the Codebase Agent Health (CAH) composite metric.'
+author: 'WouterDeBot'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  repo-path:
+    description: 'Path to the repository to scan, relative to the workspace.'
+    required: false
+    default: '.'
+  config-path:
+    description: 'Path to the AgentRepoCoach TOML config file.'
+    required: false
+    default: '.agentrepocoach.toml'
+  output-format:
+    description: 'Output format: json, markdown, or both.'
+    required: false
+    default: 'json'
+  output-path:
+    description: 'Where to write the report (when format=both, the markdown path is derived by swapping the extension to .md).'
+    required: false
+    default: './agentrepocoach-report.json'
+  fail-threshold:
+    description: 'If set, the action exits 1 when the composite score is below this value.'
+    required: false
+    default: ''
+  python-version:
+    description: 'Python version to install for running AgentRepoCoach.'
+    required: false
+    default: '3.11'
+
+outputs:
+  composite-score:
+    description: 'The final Codebase Agent Health composite score (0-100).'
+    value: ${{ steps.parse.outputs.composite-score }}
+  report-path:
+    description: 'Absolute path to the written JSON report.'
+    value: ${{ steps.parse.outputs.report-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install AgentRepoCoach
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e "${{ github.action_path }}"
+
+    - name: Run AgentRepoCoach
+      shell: bash
+      run: |
+        python -m agentrepocoach.cli \
+          --repo "${{ inputs.repo-path }}" \
+          --config "${{ inputs.config-path }}" \
+          --format "${{ inputs.output-format }}" \
+          --output "${{ inputs.output-path }}"
+
+    - name: Parse report
+      id: parse
+      uses: actions/github-script@v9
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          const reportPath = path.resolve('${{ inputs.output-path }}');
+          if (!fs.existsSync(reportPath)) {
+            core.setFailed(`AgentRepoCoach report not found at ${reportPath}`);
+            return;
+          }
+          const raw = fs.readFileSync(reportPath, 'utf8');
+          const report = JSON.parse(raw);
+          const score = report.total;
+          if (typeof score !== 'number') {
+            core.setFailed(`AgentRepoCoach report missing numeric "total" field`);
+            return;
+          }
+          core.setOutput('composite-score', score.toString());
+          core.setOutput('report-path', reportPath);
+          core.info(`AgentRepoCoach composite score: ${score.toFixed(2)} / 100`);
+
+    - name: Enforce fail threshold
+      shell: bash
+      env:
+        COMPOSITE_SCORE: ${{ steps.parse.outputs.composite-score }}
+        FAIL_THRESHOLD: ${{ inputs.fail-threshold }}
+      run: |
+        if [ -z "${FAIL_THRESHOLD}" ]; then
+          echo "No fail-threshold set; skipping enforcement."
+          exit 0
+        fi
+        python - <<'PY'
+        import os, sys
+        score = float(os.environ["COMPOSITE_SCORE"])
+        threshold = float(os.environ["FAIL_THRESHOLD"])
+        if score < threshold:
+            print(f"FAIL: composite score {score:.2f} is below threshold {threshold:.2f}", file=sys.stderr)
+            sys.exit(1)
+        print(f"PASS: composite score {score:.2f} >= threshold {threshold:.2f}")
+        PY

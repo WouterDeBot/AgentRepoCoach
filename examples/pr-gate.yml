@@ -1,0 +1,70 @@
+name: agentrepocoach-pr-gate
+
+# Fail a PR if the composite score drops more than 5 points vs main.
+# Drop this into .github/workflows/agentrepocoach-pr-gate.yml.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          path: pr
+
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+
+      - name: Score PR branch
+        id: pr-score
+        uses: WouterDeBot/agentrepocoach@v1
+        with:
+          repo-path: ./pr
+          output-path: ./pr-report.json
+
+      - name: Score main branch
+        id: main-score
+        uses: WouterDeBot/agentrepocoach@v1
+        with:
+          repo-path: ./main
+          output-path: ./main-report.json
+
+      - name: Compare scores
+        env:
+          PR_SCORE: ${{ steps.pr-score.outputs.composite-score }}
+          MAIN_SCORE: ${{ steps.main-score.outputs.composite-score }}
+          MAX_DROP: '5'
+        run: |
+          python - <<'PY'
+          import os, sys
+          pr = float(os.environ["PR_SCORE"])
+          main_score = float(os.environ["MAIN_SCORE"])
+          max_drop = float(os.environ["MAX_DROP"])
+          delta = pr - main_score
+          print(f"main:  {main_score:.2f}")
+          print(f"PR:    {pr:.2f}")
+          print(f"delta: {delta:+.2f}")
+          if delta < -max_drop:
+              print(f"FAIL: PR drops composite by {-delta:.2f} (>{max_drop})", file=sys.stderr)
+              sys.exit(1)
+          print(f"PASS: delta {delta:+.2f} within tolerance (-{max_drop})")
+          PY
+
+      - name: Upload both reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentrepocoach-pr-gate-reports
+          path: |
+            ./pr-report.json
+            ./main-report.json
+          retention-days: 14

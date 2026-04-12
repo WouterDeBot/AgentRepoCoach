@@ -1,0 +1,26 @@
+{
+  "generator": "fixture",
+  "commands": [
+    {"name": "sample-cmd-01", "description": "Placeholder command 01."},
+    {"name": "sample-cmd-02", "description": "Placeholder command 02."},
+    {"name": "sample-cmd-03", "description": "Placeholder command 03."},
+    {"name": "sample-cmd-04", "description": "Placeholder command 04."},
+    {"name": "sample-cmd-05", "description": "Placeholder command 05."},
+    {"name": "sample-cmd-06", "description": "Placeholder command 06."},
+    {"name": "sample-cmd-07", "description": "Placeholder command 07."},
+    {"name": "sample-cmd-08", "description": "Placeholder command 08."},
+    {"name": "sample-cmd-09", "description": "Placeholder command 09."},
+    {"name": "sample-cmd-10", "description": "Placeholder command 10."},
+    {"name": "sample-cmd-11", "description": "Placeholder command 11."},
+    {"name": "sample-cmd-12", "description": "Placeholder command 12."},
+    {"name": "sample-cmd-13", "description": "Placeholder command 13."},
+    {"name": "sample-cmd-14", "description": "Placeholder command 14."},
+    {"name": "sample-cmd-15", "description": "Placeholder command 15."},
+    {"name": "sample-cmd-16", "description": "Placeholder command 16."},
+    {"name": "sample-cmd-17", "description": "Placeholder command 17."},
+    {"name": "sample-cmd-18", "description": "Placeholder command 18."},
+    {"name": "sample-cmd-19", "description": "Placeholder command 19."},
+    {"name": "sample-cmd-20", "description": "Placeholder command 20."},
+    {"name": "sample-cmd-21", "description": "Placeholder command 21."}
+  ]
+}

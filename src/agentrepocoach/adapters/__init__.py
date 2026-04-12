@@ -1,0 +1,66 @@
+"""Adapter registry and language detection."""
+from __future__ import annotations
+
+from pathlib import Path
+
+from .base import Declaration, LanguageAdapter, NotSupportedError, ThrowSite
+from .csharp import CSharpAdapter
+from .go import GoAdapter
+from .python import PythonAdapter
+from .rust import RustAdapter
+from .typescript import TypeScriptAdapter
+
+_REGISTRY: dict[str, type[LanguageAdapter]] = {
+    "csharp": CSharpAdapter,
+    "python": PythonAdapter,
+    "typescript": TypeScriptAdapter,
+    "rust": RustAdapter,
+    "go": GoAdapter,
+}
+
+
+class NoAdapterError(RuntimeError):
+    """Raised when no adapter can handle the repository."""
+
+
+def get_adapter_by_name(name: str) -> LanguageAdapter:
+    """Instantiate an adapter by its registered name."""
+    if name not in _REGISTRY:
+        supported = ", ".join(sorted(_REGISTRY))
+        raise NoAdapterError(
+            f"Unknown adapter '{name}'. Supported: {supported}."
+        )
+    return _REGISTRY[name]()
+
+
+def detect_primary(repo_path: Path) -> LanguageAdapter:
+    """Try every adapter and return the one with the highest detect() confidence."""
+    candidates: list[tuple[float, LanguageAdapter]] = []
+    for cls in _REGISTRY.values():
+        adapter = cls()
+        confidence = adapter.detect(repo_path)
+        if confidence > 0.0:
+            candidates.append((confidence, adapter))
+    if not candidates:
+        raise NoAdapterError(
+            f"No supported language detected in {repo_path}. "
+            f"Supported: {', '.join(sorted(_REGISTRY))}."
+        )
+    candidates.sort(key=lambda pair: pair[0], reverse=True)
+    return candidates[0][1]
+
+
+__all__ = [
+    "CSharpAdapter",
+    "Declaration",
+    "GoAdapter",
+    "LanguageAdapter",
+    "NoAdapterError",
+    "NotSupportedError",
+    "PythonAdapter",
+    "RustAdapter",
+    "ThrowSite",
+    "TypeScriptAdapter",
+    "detect_primary",
+    "get_adapter_by_name",
+]

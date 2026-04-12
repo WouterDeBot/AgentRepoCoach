@@ -1,0 +1,59 @@
+name: agentrepocoach-basic
+
+# Minimal "score on every push" example.
+# Drop this into .github/workflows/agentrepocoach.yml in any repo.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run AgentRepoCoach
+        id: agentrepocoach
+        uses: WouterDeBot/agentrepocoach@v1
+        with:
+          repo-path: .
+          output-format: json
+          output-path: ./agentrepocoach-report.json
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentrepocoach-report
+          path: ./agentrepocoach-report.json
+          retention-days: 14
+
+      - name: Summarize in job output
+        run: |
+          echo "## AgentRepoCoach score: ${{ steps.agentrepocoach.outputs.composite-score }} / 100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Report: ${{ steps.agentrepocoach.outputs.report-path }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const score = '${{ steps.agentrepocoach.outputs.composite-score }}';
+            const body = [
+              '### AgentRepoCoach report',
+              '',
+              `**Composite score:** ${score} / 100`,
+              '',
+              '_Powered by [AgentRepoCoach](https://github.com/WouterDeBot/agentrepocoach)._',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

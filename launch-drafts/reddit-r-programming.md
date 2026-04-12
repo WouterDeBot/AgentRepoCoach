@@ -1,0 +1,55 @@
+# Reddit launch draft — AgentRepoCoach
+
+## Subreddit pick
+
+**Primary recommendation: r/ClaudeAI or r/LocalLLaMA.**
+
+r/programming is usually hostile to Show-HN-style posts and tends to
+auto-flag GitHub launches as self-promotion. r/ClaudeAI and
+r/LocalLLaMA both have a large contingent of people who actually run
+coding agents against their own repos and would understand the
+"agent-readiness" framing immediately. r/github is a reasonable
+backup; r/opensource works for the methodology angle.
+
+**Do NOT post to r/programming** without extensive rewriting — and
+even then expect downvotes. The karma won't be worth it.
+
+## Title (300 chars max)
+
+AgentRepoCoach: a 0-100 score for how ready your codebase is for AI coding agents (Apache 2.0, stdlib Python, GitHub Action)
+
+## Body
+
+I built a small open-source tool that answers one question: **how well
+will an AI coding agent actually work in this repo?**
+
+Not "does it have good test coverage" — that's a different question and
+Codecov already handles it well. AgentRepoCoach measures the stuff that
+actually burns context on every agent session: is there an `AGENTS.md`,
+are your exception messages actionable, do your inline `ADR-123`-style
+references resolve anywhere, are your test names readable, and are
+your modules small enough to hold in a context window?
+
+It's built on 5 components: **error quality, module hygiene, decision
+queryability, test quality, and documentation** (specifically, the
+navigability sub-score that measures `AGENTS.md` + codebase map + CLI
+manifest + root cleanliness). Weighted 25/25/20/15/15 into a 0-100
+composite called CAH.
+
+Runs as a GitHub Action or a CLI. Zero runtime dependencies (pure
+Python 3.11+ stdlib, including `tomllib` for config). Every field in
+the output is a count, a percentage, or a file path — never a code
+snippet — so it's safe to publish reports on closed-source repos too.
+
+C# and Python are fully supported in v0.1.0. TypeScript, Rust, and Go
+are stubs waiting for contributors — each adapter is ~200-400 lines of
+Python. Would love help there.
+
+The weights are heuristic (I couldn't find a labelled dataset of
+"agent success" to fit against), so the most useful feedback is
+**cases where the score is wrong** — repos that score low but are
+actually great, or the reverse.
+
+Apache 2.0, v0.1.0 — plenty of rough edges. Feedback very welcome.
+
+Repo: <REPO_URL>

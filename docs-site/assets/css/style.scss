@@ -1,0 +1,66 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+// AgentRepoCoach custom tweaks — keep minimal so the minima theme remains the source of truth.
+
+.site-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.site-header {
+  border-top: 4px solid #2e7d32;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #eee;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+table th,
+table td {
+  border: 1px solid #ddd;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+table th {
+  background-color: #f6f8fa;
+  font-weight: 600;
+}
+
+pre,
+code {
+  background-color: #f6f8fa;
+  border-radius: 4px;
+}
+
+pre {
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+}
+
+.site-footer {
+  border-top: 1px solid #e0e0e0;
+  padding: 1.5rem 0;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.site-footer a {
+  color: #2e7d32;
+}

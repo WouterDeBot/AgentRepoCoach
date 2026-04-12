@@ -1,0 +1,2 @@
+[console_scripts]
+agentrepocoach = agentrepocoach.cli:main

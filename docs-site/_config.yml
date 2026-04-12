@@ -1,0 +1,31 @@
+title: AgentRepoCoach
+description: Score your codebase on how ready it is for AI agents
+theme: minima
+baseurl: "/agentrepocoach"
+url: "https://example.github.io"
+author: WouterDeBot
+
+minima:
+  skin: auto
+  social_links:
+    - { platform: github, user_url: "https://github.com/WouterDeBot/agentrepocoach" }
+
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+header_pages:
+  - getting-started.md
+  - configuration.md
+  - scoring.md
+  - faq.md
+  - contributing.md
+
+# Apache 2.0 license footer is surfaced via _includes/footer.html
+license: Apache-2.0
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - node_modules

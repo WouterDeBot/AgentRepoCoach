@@ -1,0 +1,5 @@
+[project]
+name = "sample"
+version = "0.1.0"
+description = "Synthetic Python fixture for AgentRepoCoach tests."
+requires-python = ">=3.11"

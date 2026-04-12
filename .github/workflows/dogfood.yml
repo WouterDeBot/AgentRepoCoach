@@ -1,0 +1,57 @@
+name: dogfood
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tests:
+    name: Run pytest suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package with dev extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+  dogfood:
+    name: Score synthetic C# fixture with composite action
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run AgentRepoCoach on sample fixture
+        id: agentrepocoach
+        uses: ./
+        with:
+          repo-path: tests/fixtures/sample-csharp-repo
+          output-format: json
+          output-path: ./agentrepocoach-report.json
+          fail-threshold: '50'
+          python-version: '3.11'
+
+      - name: Show composite score
+        run: |
+          echo "Composite score: ${{ steps.agentrepocoach.outputs.composite-score }}"
+          echo "Report path:     ${{ steps.agentrepocoach.outputs.report-path }}"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentrepocoach-report
+          path: ./agentrepocoach-report.json
+          if-no-files-found: error

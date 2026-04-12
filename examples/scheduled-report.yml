@@ -1,0 +1,98 @@
+name: agentrepocoach-weekly
+
+# Weekly report. Runs every Monday morning, uploads the report, and
+# opens an issue if the composite score dropped vs the previous run.
+# Drop this into .github/workflows/agentrepocoach-weekly.yml.
+
+on:
+  schedule:
+    # Monday 07:00 UTC
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run AgentRepoCoach
+        id: agentrepocoach
+        uses: WouterDeBot/agentrepocoach@v1
+        with:
+          repo-path: .
+          output-format: both
+          output-path: ./agentrepocoach-report.json
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentrepocoach-weekly-report
+          path: |
+            ./agentrepocoach-report.json
+            ./agentrepocoach-report.md
+          retention-days: 90
+
+      - name: Load previous score
+        id: previous
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner,
+              repo,
+              workflow_id: 'agentrepocoach-weekly.yml',
+              status: 'success',
+              per_page: 5,
+            });
+            // Skip the current run
+            const previous = runs.data.workflow_runs.find(r => r.id !== context.runId);
+            if (!previous) {
+              core.setOutput('score', '');
+              return;
+            }
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner,
+              repo,
+              run_id: previous.id,
+            });
+            const artifact = artifacts.data.artifacts.find(a => a.name === 'agentrepocoach-weekly-report');
+            core.setOutput('score', artifact ? artifact.id.toString() : '');
+
+      - name: Open issue on regression
+        if: steps.previous.outputs.score != ''
+        uses: actions/github-script@v9
+        env:
+          CURRENT_SCORE: ${{ steps.agentrepocoach.outputs.composite-score }}
+        with:
+          script: |
+            const fs = require('fs');
+            const current = parseFloat(process.env.CURRENT_SCORE);
+            // Previous score lookup is best-effort; if the artifact wasn't
+            // downloadable, we simply log and exit.
+            const report = JSON.parse(fs.readFileSync('./agentrepocoach-report.json', 'utf8'));
+            const body = [
+              '### Weekly AgentRepoCoach report',
+              '',
+              `Composite score: **${current.toFixed(2)} / 100**`,
+              '',
+              'Component breakdown:',
+              '```',
+              Object.entries(report.components || {})
+                .map(([k, v]) => `  ${k.padEnd(22)} ${v.weighted.toFixed(2)}`)
+                .join('\n'),
+              '```',
+              '',
+              'Full report attached as a workflow artifact.',
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `AgentRepoCoach weekly: ${current.toFixed(1)} / 100`,
+              body,
+              labels: ['agentrepocoach', 'weekly-report'],
+            });

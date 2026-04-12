@@ -1,0 +1,123 @@
+# AgentRepoCoach default configuration.
+#
+# All fields are optional. The tool ships working with zero config — a new
+# user runs `python3 -m agentrepocoach.cli` and gets a sensible score even without
+# this file. Drop a `.agentrepocoach.toml` at your repo root to override defaults.
+
+schema_version = 1
+
+# Language adapter to use. "auto" picks the highest-confidence adapter.
+# Valid: auto | csharp | python | typescript | rust | go
+language = "auto"
+
+[weights]
+# Component weights. Must sum to 1.0 (tolerance 0.01).
+navigability = 0.25
+error_quality = 0.25
+decision_queryability = 0.20
+test_quality = 0.15
+module_hygiene = 0.15
+
+[paths]
+agents_md = "AGENTS.md"
+codebase_map = "docs/codebase-map.md"
+cli_manifest = "docs/cli-manifest.json"
+adr_dir = "docs/adr/"
+architecture_doc = "docs/architecture.md"
+# "auto" runs discovery in the language adapter.
+test_helpers_dir = "auto"
+# Override with an explicit list like ["src/core", "src/api"] to skip
+# adapter-driven auto-discovery of production modules.
+production_modules = ["auto"]
+
+# Globs to exclude from all scans.
+exclude = [
+    "node_modules/**",
+    "vendor/**",
+    "third_party/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/__pycache__/**",
+    "**/.venv/**",
+    "**/.tox/**",
+    "**/*.Designer.*",
+    "**/*.g.*",
+]
+
+# Root directory allow-list — files here are exempt from the stale-artifact
+# penalty in navigability.root_cleanliness. Add your project's legitimate
+# root-level files.
+root_allowlist = [
+    ".gitignore",
+    ".dockerignore",
+    ".editorconfig",
+    "LICENSE",
+    "NOTICE",
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
+    "pyproject.toml",
+    "setup.py",
+    "setup.cfg",
+    "requirements.txt",
+    "package.json",
+    "package-lock.json",
+    "Cargo.toml",
+    "Cargo.lock",
+    "go.mod",
+    "go.sum",
+    "Dockerfile",
+    "docker-compose.yml",
+    "Makefile",
+]
+
+[thresholds]
+# All defaults have research-validated defaults; override only with reason.
+god_file_loc = 800
+adr_min_count = 20
+doc_comment_min_coverage_pct = 90.0
+cli_manifest_min_commands = 20
+cli_manifest_fresh_days = 7
+cli_manifest_stale_days = 14
+root_stale_max_penalty_count = 5
+# Threat-model hardening: skip any file over this size.
+max_file_bytes = 10_485_760  # 10 MB
+# Threat-model hardening: do not follow symlinks.
+follow_symlinks = false
+
+[decision_queryability]
+# Inline-reference tokens to search for in source code.
+# Default: only ADR refs. Projects using custom conventions can extend.
+inline_ref_patterns = ["ADR-\\d+"]
+# Optional: path to a JSON/md index that resolves inline refs.
+# If unset, substring-search across ADR bodies is used.
+adr_index = ""
+
+[error_quality]
+# Optional: fully-qualified base class for domain exceptions. When set, the
+# subclass ratio sub-score counts only throws that descend from this class
+# OR throws whose type appears in domain_exception_types.
+# When unset, "user-defined" means "any exception class declared in the repo".
+domain_exception_base = ""
+# Explicit list of domain-specific exception type names to count as
+# "user-defined" in the subclass ratio. Leave empty to rely on adapter
+# auto-discovery from the repo's own source tree.
+domain_exception_types = []
+# Substring indicating a throw has an actionable fix hint. Case-insensitive.
+hint_marker = "Suggested fix:"
+
+[test_quality]
+# Patterns to search for as evidence of fixture duplication. EMPTY DEFAULT —
+# the sub-score gives full credit if unset. Add your project's common fixture
+# patterns to activate.
+fixture_duplication_patterns = []
+# Minimum helper-file count for full credit.
+helpers_full_count = 10
+
+[module_hygiene]
+# Max days since architecture doc modified before it's flagged stale.
+architecture_doc_fresh_days = 60
+# Target ratio of files declaring at least one internal type.
+internal_visibility_full_ratio = 0.10
