@@ -54,7 +54,7 @@ def compute_cah(
     for name, weight in config.weights.items():
         total += weight * components[name]["score"]
 
-    return {
+    result = {
         "schema_version": config.schema_version,
         "generator": f"{_GENERATOR_NAME} {VERSION}",
         "total": round(total, 2),
@@ -62,6 +62,23 @@ def compute_cah(
         "language": adapter.name,
         "components": components,
     }
+
+    # Generate coaching recommendations from the scored result.
+    from .output import generate_coaching
+    tips = generate_coaching(result)
+    if tips:
+        result["coaching"] = [
+            {
+                "component": t["component"],
+                "sub_component": t["sub_component"],
+                "label": t["label"],
+                "tip": t["tip"],
+                "gap": round(t["gap"], 2),
+            }
+            for t in tips
+        ]
+
+    return result
 
 
 def _pick_adapter(repo_root: Path, config: Config) -> LanguageAdapter:
