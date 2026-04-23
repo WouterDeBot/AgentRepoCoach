@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json as _json
 import sys
 from pathlib import Path
 
@@ -18,6 +19,7 @@ from .output import (
     write_markdown_comment,
     write_prometheus,
 )
+from .pr_bot import compare_scores, format_pr_comment, parse_score_output
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -71,13 +73,77 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--verbose", action="store_true", help="Print per-sub-component breakdown.")
     parser.add_argument("--quiet", action="store_true", help="Print only the total score.")
     parser.add_argument("--version", action="version", version=f"agentrepocoach {VERSION}")
+
+    # Subcommands
+    subparsers = parser.add_subparsers(dest="subcommand")
+
+    # compare subcommand
+    compare_parser = subparsers.add_parser(
+        "compare",
+        help="Compare two JSON score files and display deltas.",
+    )
+    compare_parser.add_argument(
+        "base_file",
+        type=Path,
+        help="Path to the base (target branch) JSON score file.",
+    )
+    compare_parser.add_argument(
+        "pr_file",
+        type=Path,
+        help="Path to the PR (source branch) JSON score file.",
+    )
+    compare_parser.add_argument(
+        "--json",
+        action="store_true",
+        dest="json_output",
+        help="Output raw comparison dict as JSON instead of markdown.",
+    )
+
     return parser
+
+
+def _run_compare(args: argparse.Namespace) -> int:
+    """Execute the ``compare`` subcommand."""
+    base_path = args.base_file.resolve()
+    pr_path = args.pr_file.resolve()
+
+    if not base_path.is_file():
+        print(f"error: base file does not exist: {base_path}", file=sys.stderr)
+        return 2
+    if not pr_path.is_file():
+        print(f"error: pr file does not exist: {pr_path}", file=sys.stderr)
+        return 2
+
+    try:
+        base_scores = parse_score_output(base_path.read_text())
+    except ValueError as exc:
+        print(f"error: failed to parse base file: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        pr_scores = parse_score_output(pr_path.read_text())
+    except ValueError as exc:
+        print(f"error: failed to parse pr file: {exc}", file=sys.stderr)
+        return 2
+
+    comparison = compare_scores(base_scores, pr_scores)
+
+    if args.json_output:
+        print(_json.dumps(comparison, indent=2))
+    else:
+        print(format_pr_comment(comparison))
+
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI, parse arguments, compute the CAH score, and write outputs."""
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    # Dispatch subcommands
+    if args.subcommand == "compare":
+        return _run_compare(args)
 
     repo_root = args.repo.resolve()
     if not repo_root.is_dir():
