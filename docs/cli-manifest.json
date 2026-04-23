@@ -1,0 +1,76 @@
+{
+  "tool": "agentrepocoach",
+  "version": "0.1.0",
+  "description": "Compute the Codebase Agent Health (CAH) score for a repository.",
+  "commands": [
+    {
+      "name": "agentrepocoach",
+      "description": "Score a repository for AI-agent readiness.",
+      "usage": "agentrepocoach [OPTIONS]",
+      "flags": [
+        {
+          "name": "--repo",
+          "type": "path",
+          "default": ".",
+          "description": "Path to the repository to score."
+        },
+        {
+          "name": "--config",
+          "type": "path",
+          "default": "<repo>/.agentrepocoach.toml",
+          "description": "Explicit config file path."
+        },
+        {
+          "name": "--language",
+          "type": "string",
+          "choices": ["auto", "csharp", "python", "typescript", "rust", "go"],
+          "default": "auto",
+          "description": "Override language adapter detection."
+        },
+        {
+          "name": "--json",
+          "type": "path",
+          "description": "Write full JSON result to this path."
+        },
+        {
+          "name": "--prometheus",
+          "type": "path",
+          "description": "Write Prometheus exposition metrics to this path."
+        },
+        {
+          "name": "--comment",
+          "type": "path",
+          "description": "Write a GitHub PR-comment markdown file to this path."
+        },
+        {
+          "name": "--format",
+          "type": "string",
+          "choices": ["json", "markdown", "both"],
+          "description": "Output format when using --output."
+        },
+        {
+          "name": "--output",
+          "type": "path",
+          "description": "Output path for --format. Required when --format is set."
+        },
+        {
+          "name": "--verbose",
+          "type": "boolean",
+          "default": false,
+          "description": "Print per-sub-component breakdown with metadata."
+        },
+        {
+          "name": "--quiet",
+          "type": "boolean",
+          "default": false,
+          "description": "Print only the numeric total score."
+        },
+        {
+          "name": "--version",
+          "type": "boolean",
+          "description": "Show version number and exit."
+        }
+      ]
+    }
+  ]
+}

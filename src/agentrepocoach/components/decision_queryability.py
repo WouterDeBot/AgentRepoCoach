@@ -26,11 +26,7 @@ _REF_RESOLVE_WEIGHT = 40
 _REF_FULL_PCT = 90.0
 
 
-def compute_decision_queryability(
-    repo_root: Path,
-    config: Config,
-    adapter: LanguageAdapter,
-) -> dict[str, Any]:
+def compute_decision_queryability(repo_root: Path, config: Config, adapter: LanguageAdapter) -> dict[str, Any]:
     """Score ADR catalog health + inline-ref resolution."""
     adr = _score_adr_catalog(repo_root, config)
     refs = _score_inline_ref_resolution(repo_root, config, adapter)

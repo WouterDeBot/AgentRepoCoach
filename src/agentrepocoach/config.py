@@ -86,12 +86,14 @@ class ThresholdConfig:
 
 @dataclass(frozen=True)
 class DecisionQueryabilityConfig:
+    """Settings for the decision_queryability component."""
     inline_ref_patterns: tuple[str, ...] = ("ADR-\\d+",)
     adr_index: str = ""
 
 
 @dataclass(frozen=True)
 class ErrorQualityConfig:
+    """Settings for the error_quality component."""
     domain_exception_base: str = ""
     domain_exception_types: tuple[str, ...] = ()
     hint_marker: str = "Suggested fix:"
@@ -99,18 +101,21 @@ class ErrorQualityConfig:
 
 @dataclass(frozen=True)
 class TestQualityConfig:
+    """Settings for the test_quality component."""
     fixture_duplication_patterns: tuple[str, ...] = ()
     helpers_full_count: int = 10
 
 
 @dataclass(frozen=True)
 class ModuleHygieneConfig:
+    """Settings for the module_hygiene component."""
     architecture_doc_fresh_days: int = 60
     internal_visibility_full_ratio: float = 0.10
 
 
 @dataclass(frozen=True)
 class PathConfig:
+    """File and directory paths used by scoring components."""
     agents_md: str = "AGENTS.md"
     codebase_map: str = "docs/codebase-map.md"
     cli_manifest: str = "docs/cli-manifest.json"
@@ -154,7 +159,8 @@ def load_config(repo_root: Path, config_path: Path | None = None) -> Config:
         with path.open("rb") as handle:
             raw = tomllib.load(handle)
     except (OSError, tomllib.TOMLDecodeError) as exc:
-        raise ConfigError(f"Failed to parse {path}: {exc}") from exc
+        msg = f"Failed to parse {path}: {exc}."
+        raise ConfigError(f"{msg} Check that the file is valid TOML. See docs/configuration.md for syntax examples.") from exc
 
     return _build_config_from_dict(raw)
 
@@ -163,10 +169,8 @@ def _build_config_from_dict(raw: dict[str, Any]) -> Config:
     """Merge a parsed TOML dict into a Config with defaults applied."""
     schema_version = int(raw.get("schema_version", CURRENT_SCHEMA_VERSION))
     if schema_version != CURRENT_SCHEMA_VERSION:
-        raise ConfigError(
-            f"Unsupported schema_version {schema_version}. "
-            f"This tool supports schema_version {CURRENT_SCHEMA_VERSION}."
-        )
+        msg = f"Unsupported schema_version {schema_version}. This tool supports schema_version {CURRENT_SCHEMA_VERSION}."
+        raise ConfigError(f"{msg} Try updating agentrepocoach or check the config file format at docs/configuration.md.")
 
     weights = dict(DEFAULT_WEIGHTS)
     weights.update(raw.get("weights", {}))
@@ -193,10 +197,12 @@ def _validate_weights(weights: dict[str, float]) -> None:
     """Ensure every component has a weight and they sum to ~1.0."""
     missing = set(DEFAULT_WEIGHTS) - set(weights)
     if missing:
-        raise ConfigError(f"Missing component weights: {sorted(missing)}")
+        msg = f"Missing component weights: {sorted(missing)}."
+        raise ConfigError(f"{msg} Check that [weights] in .agentrepocoach.toml includes all five components. See docs/configuration.md.")
     total = sum(weights[name] for name in DEFAULT_WEIGHTS)
     if abs(total - 1.0) > 0.01:
-        raise ConfigError(f"Component weights must sum to 1.0 (got {total:.3f})")
+        msg = f"Component weights must sum to 1.0 (got {total:.3f})."
+        raise ConfigError(f"{msg} Check the [weights] section in .agentrepocoach.toml and ensure the five values add up to exactly 1.0.")
 
 
 def _build_path_config(raw: dict[str, Any]) -> PathConfig:

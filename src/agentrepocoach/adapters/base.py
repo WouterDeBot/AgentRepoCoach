@@ -104,14 +104,7 @@ class LanguageAdapter(ABC):
 # ---------------------------------------------------------------------------
 
 
-def iter_source_files(
-    root: Path,
-    suffixes: tuple[str, ...],
-    exclude_substrings: tuple[str, ...] = (),
-    exclude_suffixes: tuple[str, ...] = (),
-    follow_symlinks: bool = False,
-    max_file_bytes: int = 10_485_760,
-) -> list[Path]:
+def iter_source_files(root: Path, suffixes: tuple[str, ...], exclude_substrings: tuple[str, ...] = (), exclude_suffixes: tuple[str, ...] = (), follow_symlinks: bool = False, max_file_bytes: int = 10_485_760) -> list[Path]:
     """Walk ``root`` and return files matching ``suffixes``.
 
     Hardened against three threat-model risks:

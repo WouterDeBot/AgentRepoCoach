@@ -27,9 +27,8 @@ def get_adapter_by_name(name: str) -> LanguageAdapter:
     """Instantiate an adapter by its registered name."""
     if name not in _REGISTRY:
         supported = ", ".join(sorted(_REGISTRY))
-        raise NoAdapterError(
-            f"Unknown adapter '{name}'. Supported: {supported}."
-        )
+        msg = f"Unknown adapter '{name}'. Supported: {supported}."
+        raise NoAdapterError(f"{msg} Check spelling or use --language to specify one of: {supported}.")
     return _REGISTRY[name]()
 
 
@@ -42,10 +41,9 @@ def detect_primary(repo_path: Path) -> LanguageAdapter:
         if confidence > 0.0:
             candidates.append((confidence, adapter))
     if not candidates:
-        raise NoAdapterError(
-            f"No supported language detected in {repo_path}. "
-            f"Supported: {', '.join(sorted(_REGISTRY))}."
-        )
+        supported = ", ".join(sorted(_REGISTRY))
+        msg = f"No supported language detected in {repo_path}. Supported: {supported}."
+        raise NoAdapterError(f"{msg} Try using --language to force an adapter, or check that the repo contains a recognized project file.")
     candidates.sort(key=lambda pair: pair[0], reverse=True)
     return candidates[0][1]
 

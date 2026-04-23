@@ -34,11 +34,7 @@ _STALE_ARTIFACT_PATTERNS = (
 )
 
 
-def compute_navigability(
-    repo_root: Path,
-    config: Config,
-    adapter: LanguageAdapter,
-) -> dict[str, Any]:
+def compute_navigability(repo_root: Path, config: Config, adapter: LanguageAdapter) -> dict[str, Any]:
     """Score the agent navigability layer."""
     agents = _score_agents_md(repo_root, config)
     codebase_map = _score_codebase_map(repo_root, config, adapter)

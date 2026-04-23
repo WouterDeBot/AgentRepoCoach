@@ -30,11 +30,7 @@ _GENERIC_LOW_PCT = 20.0
 _GENERIC_HIGH_PCT = 40.0
 
 
-def compute_error_quality(
-    repo_root: Path,
-    config: Config,
-    adapter: LanguageAdapter,
-) -> dict[str, Any]:
+def compute_error_quality(repo_root: Path, config: Config, adapter: LanguageAdapter) -> dict[str, Any]:
     """Score error-message quality: hint coverage + exception typing."""
     production_files = adapter.find_production_files(repo_root)
     domain_types = _resolve_domain_exception_types(config, adapter, production_files)

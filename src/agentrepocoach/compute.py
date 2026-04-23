@@ -17,11 +17,7 @@ from .config import Config, load_config
 _GENERATOR_NAME = "agentrepocoach"
 
 
-def compute_cah(
-    repo_root: Path,
-    config: Config | None = None,
-    adapter: LanguageAdapter | None = None,
-) -> dict[str, Any]:
+def compute_cah(repo_root: Path, config: Config | None = None, adapter: LanguageAdapter | None = None) -> dict[str, Any]:
     """Compute every component and assemble the weighted composite.
 
     Args:

@@ -29,11 +29,7 @@ _DUP_FULL_MAX = 50
 _DUP_ZERO_MAX = 200
 
 
-def compute_test_quality(
-    repo_root: Path,
-    config: Config,
-    adapter: LanguageAdapter,
-) -> dict[str, Any]:
+def compute_test_quality(repo_root: Path, config: Config, adapter: LanguageAdapter) -> dict[str, Any]:
     """Score test naming convention + helper count + fixture duplication."""
     test_files = adapter.find_test_files(repo_root)
 

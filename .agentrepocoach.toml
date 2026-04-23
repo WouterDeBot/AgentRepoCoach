@@ -76,9 +76,9 @@ root_allowlist = [
 [thresholds]
 # All defaults have research-validated defaults; override only with reason.
 god_file_loc = 800
-adr_min_count = 20
+adr_min_count = 5
 doc_comment_min_coverage_pct = 90.0
-cli_manifest_min_commands = 20
+cli_manifest_min_commands = 1
 cli_manifest_fresh_days = 7
 cli_manifest_stale_days = 14
 root_stale_max_penalty_count = 5

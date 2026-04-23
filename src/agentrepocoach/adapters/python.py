@@ -31,7 +31,7 @@ _RAISE_PATTERN = re.compile(r"\braise\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:\(|$)")
 _PUBLIC_DECL_PATTERN = re.compile(r"^(class|def)\s+([A-Za-z][A-Za-z0-9_]*)\s*[\(:]")
 _PRIVATE_DECL_PATTERN = re.compile(r"^(class|def)\s+(_[A-Za-z0-9_]*)\s*[\(:]")
 
-_TEST_METHOD_PATTERN = re.compile(r"^\s*def\s+(test_[A-Za-z0-9_]+)\s*\(")
+_TEST_METHOD_PATTERN = re.compile(r"^\s*def\s+(test_[A-Za-z0-9_]+)\s*\(", re.MULTILINE)
 _TEST_SNAKE_PATTERN = re.compile(r"^test_[a-z][a-z0-9_]*_[a-z0-9_]+_[a-z0-9_]+$")
 
 # Stdlib exception types considered "too generic" for good agent UX.

@@ -19,6 +19,7 @@ from .output import (
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser for the ``agentrepocoach`` CLI."""
     parser = argparse.ArgumentParser(
         prog="agentrepocoach",
         description="Compute the Codebase Agent Health (CAH) composite score for a repository.",
@@ -65,6 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the CLI, parse arguments, compute the CAH score, and write outputs."""
     parser = build_parser()
     args = parser.parse_args(argv)
 

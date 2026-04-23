@@ -28,11 +28,7 @@ _GOD_FILE_FULL_COUNT = 5
 _GOD_FILE_ZERO_COUNT = 15
 
 
-def compute_module_hygiene(
-    repo_root: Path,
-    config: Config,
-    adapter: LanguageAdapter,
-) -> dict[str, Any]:
+def compute_module_hygiene(repo_root: Path, config: Config, adapter: LanguageAdapter) -> dict[str, Any]:
     """Score internal visibility + god files + doc coverage + arch doc freshness."""
     production_files = adapter.find_production_files(repo_root)
     declarations = adapter.scan_declarations(production_files)
