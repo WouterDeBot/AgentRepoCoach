@@ -130,12 +130,24 @@ and scoring formula.
 |---------------|-----------------------|-------|
 | C#            | Full MVP              | Throw-site scanner, XML doc detection, internal visibility, .sln/.csproj discovery |
 | Python        | Full MVP              | Raise-site scanner, docstring detection, top-level visibility, src/ layout aware |
-| TypeScript    | Stub — contributions welcome | Language detected but adapter raises `NotImplementedError` |
-| Rust          | Stub — contributions welcome | Same as above |
-| Go            | Stub — contributions welcome | Same as above |
+| TypeScript    | Full MVP              | Throw-site scanner with multi-line context, JSDoc detection, Jest/Vitest test extraction |
+| Rust          | Full MVP              | `panic!`/`Err(Custom)` mapping, `///` doc comment detection, `#[test]` attribute detection |
+| Go            | Full MVP              | `errors.New`/`fmt.Errorf`/custom error mapping, Go doc comment detection, `Test*` function extraction |
 
 Adding a new adapter is a small, well-scoped task — see
 [`CONTRIBUTING.md`](CONTRIBUTING.md#adding-a-new-language-adapter).
+
+## Coaching recommendations
+
+When you run AgentRepoCoach, it doesn't just score your repo — it tells you
+what to fix first. The coaching engine analyzes sub-component score gaps and
+surfaces the top-3 actionable tips ranked by weighted impact. Recommendations
+appear in:
+
+- Terminal summary (default output)
+- Verbose mode (`--verbose`)
+- Markdown PR comments (`--format markdown`)
+- JSON reports (`--format json`, new `coaching` array)
 
 ## How it works
 

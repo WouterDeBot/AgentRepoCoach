@@ -54,7 +54,8 @@ plumbing — and shows you exactly which files to fix first.
 ### Features
 
 - Zero runtime dependencies (Python 3.11+ stdlib only)
-- Full support for C# and Python; stub adapters for TypeScript, Rust, Go
+- Full support for 5 languages: C#, Python, TypeScript, Go, and Rust
+- Coaching recommendations — top-3 actionable fix tips ranked by weighted impact
 - TOML config (`.agentrepocoach.toml`) with sensible zero-config defaults
 - JSON and Markdown output formats
 - `fail-threshold` input for PR gating (CI fails if score drops below your bar)
@@ -80,7 +81,7 @@ jobs:
 
       - name: Run AgentRepoCoach
         id: agentrepocoach
-        uses: WouterDeBot/agentrepocoach@v0.1.0
+        uses: WouterDeBot/agentrepocoach@v0.2.0
         with:
           repo-path: .
           output-format: json
@@ -126,4 +127,4 @@ Free (Apache 2.0 OSS).
 - No `secrets` are read by the action. No outbound network calls
   beyond `pip install` of the action's own package on the runner.
 - All inputs default to safe values; the action runs out-of-the-box
-  with `uses: WouterDeBot/agentrepocoach@v0.1.0` and zero `with:` keys.
+  with `uses: WouterDeBot/agentrepocoach@v0.2.0` and zero `with:` keys.
