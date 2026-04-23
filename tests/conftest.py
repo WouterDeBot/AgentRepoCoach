@@ -27,6 +27,30 @@ def python_fixture() -> Path:
 
 
 @pytest.fixture(scope="session")
+def typescript_fixture() -> Path:
+    """Path to the sample TypeScript fixture repo."""
+    path = FIXTURES_ROOT / "sample-typescript-repo"
+    _touch_recent_files(path)
+    return path
+
+
+@pytest.fixture(scope="session")
+def go_fixture() -> Path:
+    """Path to the sample Go fixture repo."""
+    path = FIXTURES_ROOT / "sample-go-repo"
+    _touch_recent_files(path)
+    return path
+
+
+@pytest.fixture(scope="session")
+def rust_fixture() -> Path:
+    """Path to the sample Rust fixture repo."""
+    path = FIXTURES_ROOT / "sample-rust-repo"
+    _touch_recent_files(path)
+    return path
+
+
+@pytest.fixture(scope="session")
 def empty_fixture() -> Path:
     """Path to the empty fixture repo (no supported language)."""
     return FIXTURES_ROOT / "sample-empty-repo"

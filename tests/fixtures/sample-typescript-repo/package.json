@@ -1,0 +1,11 @@
+{
+  "name": "sample-typescript-repo",
+  "version": "1.0.0",
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  }
+}

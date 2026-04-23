@@ -1,0 +1,8 @@
+{
+  "commands": [
+    {
+      "name": "sample-go-repo",
+      "description": "Run the sample Go service"
+    }
+  ]
+}
