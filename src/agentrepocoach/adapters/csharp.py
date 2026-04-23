@@ -116,10 +116,14 @@ class CSharpAdapter(LanguageAdapter):
     # ------------------------------------------------------------------
 
     def detect(self, repo_path: Path) -> float:
-        """1.0 if any *.sln, 0.8 if any *.csproj, else 0.0."""
-        if any(repo_path.rglob("*.sln")):
+        """1.0 if any *.sln, 0.8 if any *.csproj, else 0.0.
+
+        Only checks the repo root and one level deep to avoid false
+        positives from test fixtures or vendored dependencies.
+        """
+        if any(repo_path.glob("*.sln")) or any(repo_path.glob("*/*.sln")):
             return 1.0
-        if any(repo_path.rglob("*.csproj")):
+        if any(repo_path.glob("*.csproj")) or any(repo_path.glob("*/*.csproj")):
             return 0.8
         return 0.0
 

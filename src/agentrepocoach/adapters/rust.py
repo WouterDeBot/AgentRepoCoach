@@ -72,7 +72,9 @@ class RustAdapter(LanguageAdapter):
     def detect(self, repo_path: Path) -> float:
         if (repo_path / "Cargo.toml").is_file():
             return 1.0
-        if any(repo_path.rglob("*.rs")):
+        # Shallow search (root + one level) to avoid false positives from
+        # test fixtures or vendored dependencies.
+        if any(repo_path.glob("*.rs")) or any(repo_path.glob("*/*.rs")):
             return 0.5
         return 0.0
 

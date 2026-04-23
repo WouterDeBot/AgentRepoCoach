@@ -72,7 +72,9 @@ class GoAdapter(LanguageAdapter):
     def detect(self, repo_path: Path) -> float:
         if (repo_path / "go.mod").is_file():
             return 1.0
-        if any(repo_path.rglob("*.go")):
+        # Shallow search (root + one level) to avoid false positives from
+        # test fixtures or vendored dependencies.
+        if any(repo_path.glob("*.go")) or any(repo_path.glob("*/*.go")):
             return 0.5
         return 0.0
 
