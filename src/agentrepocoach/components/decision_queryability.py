@@ -14,11 +14,13 @@ inline_ref_resolution 30 -> 40. Total still sums to 100.
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 from typing import Any
 
 from ..adapters import LanguageAdapter
 from ..config import Config
+from ..regex_safety import safe_compile_pattern
 from ..scoring import scale_linear
 
 _ADR_COUNT_WEIGHT = 60
@@ -139,9 +141,13 @@ def _compile_inline_ref_patterns(patterns: tuple[str, ...]) -> list[re.Pattern[s
         # Wrap in word boundaries if the user did not already supply them.
         anchored = raw if raw.startswith("\\b") else rf"\b{raw}\b"
         try:
-            compiled.append(re.compile(anchored, re.IGNORECASE))
-        except re.error:
-            # Malformed regex -> skip silently; the user sees it in --verbose.
+            compiled.append(safe_compile_pattern(anchored, flags=re.IGNORECASE))
+        except ValueError as exc:
+            warnings.warn(
+                f"Skipping inline_ref_pattern {raw!r}: {exc}",
+                UserWarning,
+                stacklevel=2,
+            )
             continue
     return compiled
 

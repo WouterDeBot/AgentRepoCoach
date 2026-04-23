@@ -14,12 +14,14 @@ full credit unless the user opts in by listing project-specific patterns.
 from __future__ import annotations
 
 import re
+import warnings
 from pathlib import Path
 from typing import Any
 
 from ..adapters import LanguageAdapter
 from ..adapters.base import iter_source_files
 from ..config import Config
+from ..regex_safety import safe_compile_pattern
 from ..scoring import scale_linear
 
 _NAMING_WEIGHT = 40
@@ -153,8 +155,13 @@ def _score_fixture_duplication(
     compiled: list[re.Pattern[str]] = []
     for raw in patterns:
         try:
-            compiled.append(re.compile(raw))
-        except re.error:
+            compiled.append(safe_compile_pattern(raw))
+        except ValueError as exc:
+            warnings.warn(
+                f"Skipping fixture_duplication_pattern {raw!r}: {exc}",
+                UserWarning,
+                stacklevel=2,
+            )
             continue
 
     total = 0
