@@ -1,0 +1,84 @@
+name: CAH Score PR Comment
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  score-and-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install AgentRepoCoach
+        run: pip install .
+
+      - name: Score PR branch
+        run: agentrepocoach --repo . --format json --output pr-report.json
+
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          path: base-branch
+
+      - name: Score base branch
+        run: agentrepocoach --repo base-branch --format json --output base-report.json
+
+      - name: Generate comparison comment
+        id: compare
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from agentrepocoach.pr_bot import compare_scores, format_pr_comment, parse_score_output
+          from agentrepocoach.output import generate_coaching
+
+          with open("pr-report.json") as f:
+              pr_scores = parse_score_output(f.read())
+          with open("base-report.json") as f:
+              base_scores = parse_score_output(f.read())
+
+          comparison = compare_scores(base_scores, pr_scores)
+          tips = generate_coaching(pr_scores)
+          body = format_pr_comment(comparison, coaching_tips=tips)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"body<<AGENTREPOCOACH_EOF\n{body}\nAGENTREPOCOACH_EOF\n")
+          PY
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- agentrepocoach -->';
+            const body = `${{ steps.compare.outputs.body }}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
