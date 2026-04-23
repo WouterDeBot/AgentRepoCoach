@@ -315,6 +315,23 @@ def test_rust_adapter_finds_test_methods(rust_fixture: Path) -> None:
     assert len(methods) >= 2
 
 
+def test_detect_primary_python_repo_with_sln_fixture(tmp_path: Path) -> None:
+    """A Python repo containing a .sln fixture file should still detect as Python."""
+    # Set up a Python project structure.
+    (tmp_path / "pyproject.toml").write_text("[project]\nname = 'myapp'\n")
+    src = tmp_path / "src" / "myapp"
+    src.mkdir(parents=True)
+    (src / "__init__.py").write_text("")
+    (src / "main.py").write_text("def main(): pass\n")
+    (src / "utils.py").write_text("def helper(): pass\n")
+    # Add a C# fixture .sln file one level deep (like tests/fixtures).
+    fixture_dir = tmp_path / "tests"
+    fixture_dir.mkdir()
+    (fixture_dir / "Sample.sln").write_text("Microsoft Visual Studio Solution File")
+    adapter = detect_primary(tmp_path)
+    assert adapter.name == "python"
+
+
 def test_get_adapter_by_name_unknown_raises() -> None:
     with pytest.raises(NoAdapterError):
         get_adapter_by_name("cobol")

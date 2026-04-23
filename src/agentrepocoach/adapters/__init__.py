@@ -33,7 +33,12 @@ def get_adapter_by_name(name: str) -> LanguageAdapter:
 
 
 def detect_primary(repo_path: Path) -> LanguageAdapter:
-    """Try every adapter and return the one with the highest detect() confidence."""
+    """Try every adapter and return the one with the highest detect() confidence.
+
+    When multiple adapters tie on confidence, the adapter whose
+    ``find_production_files`` returns more files wins — a repo with 20 .py
+    files and a single .sln fixture is almost certainly a Python project.
+    """
     candidates: list[tuple[float, LanguageAdapter]] = []
     for cls in _REGISTRY.values():
         adapter = cls()
@@ -44,7 +49,12 @@ def detect_primary(repo_path: Path) -> LanguageAdapter:
         supported = ", ".join(sorted(_REGISTRY))
         msg = f"No supported language detected in {repo_path}. Supported: {supported}."
         raise NoAdapterError(f"{msg} Try using --language to force an adapter, or check that the repo contains a recognized project file.")
-    candidates.sort(key=lambda pair: pair[0], reverse=True)
+    # Sort by confidence (desc), then by production file count (desc) to
+    # break ties deterministically in favour of the dominant language.
+    candidates.sort(
+        key=lambda pair: (pair[0], len(pair[1].find_production_files(repo_path))),
+        reverse=True,
+    )
     return candidates[0][1]
 
 
