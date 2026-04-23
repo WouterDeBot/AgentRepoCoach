@@ -254,6 +254,72 @@ def format_summary(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def format_comparison(current: dict[str, Any], baseline: dict[str, Any]) -> str:
+    """Return a terminal-friendly delta table comparing *current* against *baseline*."""
+    cur_total = current["total"]
+    base_total = baseline["total"]
+    delta_total = cur_total - base_total
+
+    lines = [
+        "AgentRepoCoach — Score Comparison",
+        "=================================",
+        f"Total: {base_total:.2f} -> {cur_total:.2f} ({delta_total:+.2f})",
+        "",
+        f"  {'Component':25s} {'Baseline':>10s} {'Current':>10s} {'Delta':>10s}",
+        f"  {'-' * 25} {'-' * 10} {'-' * 10} {'-' * 10}",
+    ]
+
+    base_components = baseline.get("components", {})
+    cur_components = current.get("components", {})
+    all_names = list(dict.fromkeys(list(base_components) + list(cur_components)))
+
+    for name in all_names:
+        base_score = base_components.get(name, {}).get("score", 0.0)
+        cur_score = cur_components.get(name, {}).get("score", 0.0)
+        delta = cur_score - base_score
+        lines.append(
+            f"  {name:25s} {base_score:10.2f} {cur_score:10.2f} {delta:+10.2f}"
+        )
+
+    return "\n".join(lines)
+
+
+def format_comparison_markdown(current: dict[str, Any], baseline: dict[str, Any]) -> str:
+    """Return a markdown delta table suitable for a GitHub PR comment."""
+    cur_total = current["total"]
+    base_total = baseline["total"]
+    delta_total = cur_total - base_total
+
+    lines = [
+        "### AgentRepoCoach — Score Comparison",
+        "",
+        f"**Total score:** {base_total:.2f} -> {cur_total:.2f} ({delta_total:+.2f})",
+        "",
+        "| Component | Baseline | Current | Delta |",
+        "|---|---:|---:|---:|",
+    ]
+
+    base_components = baseline.get("components", {})
+    cur_components = current.get("components", {})
+    all_names = list(dict.fromkeys(list(base_components) + list(cur_components)))
+
+    for name in all_names:
+        base_score = base_components.get(name, {}).get("score", 0.0)
+        cur_score = cur_components.get(name, {}).get("score", 0.0)
+        delta = cur_score - base_score
+        lines.append(f"| {name} | {base_score:.2f} | {cur_score:.2f} | {delta:+.2f} |")
+
+    # Append coaching tips from the current result
+    tips = generate_coaching(current)
+    coaching = format_coaching_markdown(tips)
+    if coaching:
+        lines.append(coaching)
+
+    lines.append("<!-- agentrepocoach -->")
+
+    return "\n".join(lines)
+
+
 def format_verbose(result: dict[str, Any]) -> str:
     """Return the summary plus a per-sub-component breakdown."""
     lines = [format_summary(result), "", "Sub-component breakdown:"]

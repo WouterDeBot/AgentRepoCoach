@@ -1,0 +1,110 @@
+name: agentrepocoach-pr-comment
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  score-and-comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install AgentRepoCoach
+        run: pip install agentrepocoach
+
+      - name: Score PR branch
+        run: agentrepocoach --repo . --format json --output pr-report.json
+
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          path: base-branch
+
+      - name: Score base branch
+        run: agentrepocoach --repo base-branch --format json --output base-report.json
+
+      - name: Generate comparison comment
+        id: compare
+        run: |
+          python3 - <<'PY'
+          import json, os
+
+          with open("pr-report.json") as f:
+              pr = json.load(f)
+          with open("base-report.json") as f:
+              base = json.load(f)
+
+          delta = pr["total"] - base["total"]
+          icon = "🟢" if delta >= 0 else "🔴"
+
+          lines = [
+              "### AgentRepoCoach — Score Comparison",
+              "",
+              f"**Total:** {base['total']:.2f} → {pr['total']:.2f} ({delta:+.2f}) {icon}",
+              "",
+              "| Component | Base | PR | Delta |",
+              "|---|---:|---:|---:|",
+          ]
+
+          for name in pr.get("components", {}):
+              bs = base.get("components", {}).get(name, {}).get("score", 0)
+              ps = pr["components"][name]["score"]
+              d = ps - bs
+              lines.append(f"| {name} | {bs:.2f} | {ps:.2f} | {d:+.2f} |")
+
+          # Coaching tips from PR branch
+          tips = pr.get("coaching", [])
+          if tips:
+              lines.append("")
+              lines.append("#### Top recommendations")
+              lines.append("")
+              for i, tip in enumerate(tips[:3], 1):
+                  lines.append(f"{i}. **{tip['label']}** (`{tip['component']}`) — {tip['tip']}")
+
+          lines.append("")
+          lines.append("<!-- agentrepocoach -->")
+
+          body = "\n".join(lines)
+          # Write to GITHUB_OUTPUT for the next step
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"body<<AGENTREPOCOACH_EOF\n{body}\nAGENTREPOCOACH_EOF\n")
+          PY
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- agentrepocoach -->';
+            const body = `${{ steps.compare.outputs.body }}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

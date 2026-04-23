@@ -10,6 +10,8 @@ from .adapters import NoAdapterError
 from .compute import compute_cah
 from .config import ConfigError, load_config
 from .output import (
+    format_comparison,
+    format_comparison_markdown,
     format_summary,
     format_verbose,
     write_json,
@@ -59,6 +61,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Output path for --format. Ignored if --format is not set.",
     )
+    parser.add_argument(
+        "--compare",
+        type=Path,
+        default=None,
+        help="Path to a baseline JSON report. Prints a delta comparison instead of "
+             "the normal summary.",
+    )
     parser.add_argument("--verbose", action="store_true", help="Print per-sub-component breakdown.")
     parser.add_argument("--quiet", action="store_true", help="Print only the total score.")
     parser.add_argument("--version", action="version", version=f"agentrepocoach {VERSION}")
@@ -92,7 +101,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    if args.quiet:
+    if args.compare:
+        baseline_path = args.compare.resolve()
+        if not baseline_path.is_file():
+            print(f"error: baseline report not found: {baseline_path}", file=sys.stderr)
+            return 2
+        import json as _json
+        baseline = _json.loads(baseline_path.read_text())
+        if args.quiet:
+            delta = result["total"] - baseline["total"]
+            print(f"{delta:+.2f}")
+        else:
+            print(format_comparison(result, baseline))
+    elif args.quiet:
         print(f"{result['total']:.2f}")
     elif args.verbose:
         print(format_verbose(result))
