@@ -287,3 +287,56 @@ class TestExistingCLIStillWorks:
         assert rc == 2
         err = capsys.readouterr().err
         assert "error" in err.lower()
+
+
+class TestFormatWithoutOutput:
+    """EXP-010: --format json/markdown prints to stdout without --output."""
+
+    _MOCK_RESULT = {
+        "total": 82.00,
+        "language": "python",
+        "weights": {"navigability": 0.20},
+        "components": {
+            "navigability": {"score": 82.0, "breakdown": {}},
+        },
+    }
+
+    def test_format_json_prints_to_stdout(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """--format json without --output prints JSON to stdout, exit 0."""
+        with patch("agentrepocoach.cli.compute_cah", return_value=self._MOCK_RESULT):
+            rc = main(["--repo", ".", "--format", "json"])
+        assert rc == 0
+        captured = capsys.readouterr()
+        assert captured.err == ""  # no stderr warning
+        data = json.loads(captured.out)
+        assert data["total"] == 82.00
+
+    def test_format_markdown_prints_to_stdout(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """--format markdown without --output prints markdown to stdout, exit 0."""
+        with patch("agentrepocoach.cli.compute_cah", return_value=self._MOCK_RESULT):
+            rc = main(["--repo", ".", "--format", "markdown"])
+        assert rc == 0
+        captured = capsys.readouterr()
+        assert captured.err == ""  # no stderr warning
+        assert "### AgentRepoCoach" in captured.out
+        assert "82.00" in captured.out
+
+    def test_format_both_without_output_errors(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """--format both without --output still requires --output and exits 2."""
+        with patch("agentrepocoach.cli.compute_cah", return_value=self._MOCK_RESULT):
+            rc = main(["--repo", ".", "--format", "both"])
+        assert rc == 2
+        err = capsys.readouterr().err
+        assert "error" in err.lower()
+
+    def test_format_json_with_output_writes_file(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """--format json --output path still writes to file (regression)."""
+        out_file = tmp_path / "report.json"
+        with patch("agentrepocoach.cli.compute_cah", return_value=self._MOCK_RESULT):
+            rc = main(["--repo", ".", "--format", "json", "--output", str(out_file)])
+        assert rc == 0
+        assert out_file.exists()
+        data = json.loads(out_file.read_text())
+        assert data["total"] == 82.00

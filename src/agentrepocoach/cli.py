@@ -15,6 +15,8 @@ from .output import (
     format_comparison_markdown,
     format_summary,
     format_verbose,
+    render_json,
+    render_markdown_comment,
     write_json,
     write_markdown_comment,
     write_prometheus,
@@ -53,9 +55,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--format",
         choices=["json", "markdown", "both"],
         default=None,
-        help="Output format when using --output. 'json' writes the full report, "
-             "'markdown' writes a PR-comment summary, 'both' writes both (markdown "
-             "path derived from --output by swapping the extension to .md).",
+        help="Output format. 'json' prints the full report (to stdout or --output), "
+             "'markdown' prints a PR-comment summary (to stdout or --output), "
+             "'both' writes both to --output (markdown path derived by swapping "
+             "the extension to .md; requires --output).",
     )
     parser.add_argument(
         "--output",
@@ -167,6 +170,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
+    # When --format is used without --output, the formatted content replaces
+    # the default terminal summary on stdout.
+    stdout_replaced_by_format = args.format and not args.output
+
     if args.compare:
         baseline_path = args.compare.resolve()
         if not baseline_path.is_file():
@@ -179,6 +186,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{delta:+.2f}")
         else:
             print(format_comparison(result, baseline))
+    elif stdout_replaced_by_format:
+        pass  # handled below in the --format block
     elif args.quiet:
         print(f"{result['total']:.2f}")
     elif args.verbose:
@@ -204,10 +213,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.format and args.output:
         _write_formatted(result, args.format, args.output, quiet=args.quiet)
     elif args.format and not args.output:
-        print("error: --format requires --output", file=sys.stderr)
-        return 2
+        if args.format == "both":
+            print("error: --format both requires --output", file=sys.stderr)
+            return 2
+        _print_formatted(result, args.format)
 
     return 0
+
+
+def _print_formatted(result: dict, fmt: str) -> None:
+    """Print formatted output to stdout when --output is not provided."""
+    if fmt == "json":
+        print(render_json(result))
+    elif fmt == "markdown":
+        print(render_markdown_comment(result))
 
 
 def _write_formatted(

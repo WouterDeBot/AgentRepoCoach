@@ -21,14 +21,19 @@ _METRIC_HELP = "AgentRepoCoach composite codebase agent health score (0-100)."
 _METRIC_NAME = "agentrepocoach_codebase_health_score"
 
 
+def render_json(result: dict[str, Any]) -> str:
+    """Return the full score breakdown as a JSON string."""
+    return json.dumps(result, indent=2, default=str)
+
+
 def write_json(result: dict[str, Any], path: Path) -> None:
     """Write the full score breakdown as JSON."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(result, indent=2, default=str) + "\n")
+    path.write_text(render_json(result) + "\n")
 
 
-def write_prometheus(result: dict[str, Any], path: Path) -> None:
-    """Write the score in Prometheus exposition format."""
+def render_prometheus(result: dict[str, Any]) -> str:
+    """Return the score in Prometheus exposition format as a string."""
     lines = [
         f"# HELP {_METRIC_NAME} {_METRIC_HELP}",
         f"# TYPE {_METRIC_NAME} gauge",
@@ -37,8 +42,36 @@ def write_prometheus(result: dict[str, Any], path: Path) -> None:
     for name, component in result.get("components", {}).items():
         score = component.get("score", 0)
         lines.append(f'{_METRIC_NAME}{{component="{name}"}} {score}')
+    return "\n".join(lines)
+
+
+def write_prometheus(result: dict[str, Any], path: Path) -> None:
+    """Write the score in Prometheus exposition format."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("\n".join(lines) + "\n")
+    path.write_text(render_prometheus(result) + "\n")
+
+
+def render_markdown_comment(result: dict[str, Any]) -> str:
+    """Return a short summary suitable for a GitHub PR comment as a string."""
+    lines = [
+        "### AgentRepoCoach — Codebase Agent Health",
+        "",
+        f"**Total score:** {result['total']:.2f} / 100",
+        f"**Language:** `{result.get('language', 'unknown')}`",
+        "",
+        "| Component | Score | Weight |",
+        "|---|---:|---:|",
+    ]
+    weights = result.get("weights", {})
+    for name, component in result.get("components", {}).items():
+        weight = weights.get(name, 0.0)
+        lines.append(f"| {name} | {component['score']:.2f} / 100 | {weight:.2f} |")
+    tips = generate_coaching(result)
+    coaching = format_coaching_markdown(tips)
+    if coaching:
+        lines.append(coaching)
+    lines.append("<!-- agentrepocoach -->")
+    return "\n".join(lines)
 
 
 def write_markdown_comment(result: dict[str, Any], path: Path) -> None:
