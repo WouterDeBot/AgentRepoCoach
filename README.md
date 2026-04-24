@@ -89,6 +89,12 @@ python -m agentrepocoach.cli --repo . --format json --output ./report.json
 # Per-sub-component breakdown
 python -m agentrepocoach.cli --repo . --verbose
 
+# Compare against a baseline report (inline delta)
+python -m agentrepocoach.cli --repo . --format json --output ./pr.json --compare ./baseline.json
+
+# Compare two saved score files
+python -m agentrepocoach.cli compare ./baseline.json ./pr.json
+
 # Show the installed version
 python -m agentrepocoach.cli --version
 ```

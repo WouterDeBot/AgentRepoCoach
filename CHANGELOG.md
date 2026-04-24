@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-04-23
+
+### Added
+
+- `compare` CLI subcommand for local score file comparison (base vs. PR JSON reports)
+- PR bot module (`pr_bot.py`) for structured score comparison on pull requests
+- `--compare` flag on the default `score` command for inline baseline comparison
+- GitHub Actions workflow for automated PR score comments (`cah-score.yml`)
+- GitHub Actions CI pipeline with Python 3.11/3.12/3.13 test matrix (`ci.yml`)
+- CLI integration tests (`test_cli_compare.py`)
+
+### Fixed
+
+- Language detection priority when multiple adapters tie on confidence — tiebreaker now uses production file count to select the dominant language deterministically
+
+### Security
+
+- ReDoS regex safety guard (`regex_safety.py`) for user-configurable patterns — detects nested quantifiers before compilation to prevent catastrophic backtracking
+
 ## [0.2.0] — 2026-04-23
 
 ### Added
@@ -47,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Regex ReDoS audit (informal — formal audit deferred to v0.2)
 - JSON output contains no source code snippets, only counts, paths, and identifiers
 
-[Unreleased]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/WouterDeBot/agentrepocoach/releases/tag/v0.1.0
