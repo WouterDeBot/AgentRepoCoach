@@ -4,7 +4,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/agentrepocoach.svg)](https://pypi.org/project/agentrepocoach/)
 [![License](https://img.shields.io/github/license/WouterDeBot/agentrepocoach.svg)](./LICENSE)
-[![CI](https://github.com/WouterDeBot/agentrepocoach/workflows/dogfood/badge.svg)](https://github.com/WouterDeBot/agentrepocoach/actions)
+[![CI](https://github.com/WouterDeBot/agentrepocoach/actions/workflows/ci.yml/badge.svg)](https://github.com/WouterDeBot/agentrepocoach/actions/workflows/ci.yml)
 [![Python versions](https://img.shields.io/pypi/pyversions/agentrepocoach.svg)](https://pypi.org/project/agentrepocoach/)
 
 AgentRepoCoach computes the **Codebase Agent Health (CAH)** score: a single 0-100
