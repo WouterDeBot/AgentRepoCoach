@@ -1,9 +1,10 @@
-"""Tests for the ``compare`` CLI subcommand."""
+"""Tests for the ``compare`` CLI subcommand and CLI integration."""
 from __future__ import annotations
 
 import json
 import textwrap
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -175,6 +176,44 @@ class TestCompareErrors:
         assert rc == 2
 
 
+class TestCompareArgPositions:
+    """Verify argument parsing order for the compare subcommand."""
+
+    def test_json_flag_after_positional_args(
+        self, base_file: Path, pr_file: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # --json after positional args should also work
+        rc = main(["compare", str(base_file), str(pr_file), "--json"])
+        assert rc == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["base_total"] == 72.50
+        assert data["pr_total"] == 78.80
+
+    def test_compare_stderr_on_missing_both_files(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # When base file is missing, error should mention it (first check)
+        rc = main(["compare", str(tmp_path / "a.json"), str(tmp_path / "b.json")])
+        assert rc == 2
+        err = capsys.readouterr().err
+        assert "base file" in err.lower() or "does not exist" in err.lower()
+
+    def test_json_missing_components_defaults_to_zero(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # JSON with total but missing components -- compare_scores defaults
+        # missing components to 0 and still succeeds.
+        base = tmp_path / "base.json"
+        base.write_text(json.dumps({"total": 50.0, "components": {}}))
+        pr = tmp_path / "pr.json"
+        pr.write_text(json.dumps(PR))
+        rc = main(["compare", str(base), str(pr)])
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "50.00" in out
+        assert "78.80" in out
+
+
 class TestExistingCLIStillWorks:
     """Regression: the existing CLI behavior must not break."""
 
@@ -182,3 +221,69 @@ class TestExistingCLIStillWorks:
         with pytest.raises(SystemExit) as exc_info:
             main(["--version"])
         assert exc_info.value.code == 0
+
+    def test_default_cli_repo_quiet(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """main(["--repo", ".", "--quiet"]) should score a repo and print total."""
+        # Mock compute_cah to avoid depending on actual repo structure
+        mock_result = {
+            "total": 65.00,
+            "language": "python",
+            "weights": {"navigability": 0.20},
+            "components": {
+                "navigability": {"score": 65.0, "breakdown": {}},
+            },
+        }
+        with patch("agentrepocoach.cli.compute_cah", return_value=mock_result):
+            rc = main(["--repo", ".", "--quiet"])
+        assert rc == 0
+        out = capsys.readouterr().out.strip()
+        assert out == "65.00"
+
+    def test_default_cli_repo_verbose(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """main(["--repo", ".", "--verbose"]) should print verbose breakdown."""
+        mock_result = {
+            "total": 70.00,
+            "language": "python",
+            "weights": {"navigability": 0.20},
+            "components": {
+                "navigability": {
+                    "score": 70.0,
+                    "breakdown": {
+                        "structure": {
+                            "score": 70.0,
+                            "label": "Structure",
+                            "tip": "Good structure",
+                            "max_score": 100.0,
+                        },
+                    },
+                },
+            },
+        }
+        with patch("agentrepocoach.cli.compute_cah", return_value=mock_result):
+            rc = main(["--repo", ".", "--verbose"])
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "70.00" in out
+
+    def test_default_cli_repo_summary(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """main(["--repo", "."]) without flags should print a summary."""
+        mock_result = {
+            "total": 75.50,
+            "language": "python",
+            "weights": {"navigability": 0.20},
+            "components": {
+                "navigability": {"score": 75.5, "breakdown": {}},
+            },
+        }
+        with patch("agentrepocoach.cli.compute_cah", return_value=mock_result):
+            rc = main(["--repo", "."])
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "75.50" in out
+
+    def test_default_cli_invalid_repo_path(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Passing a non-existent repo path should return error code 2."""
+        rc = main(["--repo", "/nonexistent/path/to/repo"])
+        assert rc == 2
+        err = capsys.readouterr().err
+        assert "error" in err.lower()
