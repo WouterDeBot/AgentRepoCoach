@@ -57,10 +57,12 @@ jobs:
 
       - name: Post or update PR comment
         uses: actions/github-script@v7
+        env:
+          COMMENT_BODY: ${{ steps.compare.outputs.body }}
         with:
           script: |
             const marker = '<!-- agentrepocoach -->';
-            const body = `${{ steps.compare.outputs.body }}`;
+            const body = process.env.COMMENT_BODY;
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
