@@ -169,6 +169,3 @@ are safe to publish as CI artifacts.
 ## License
 
 Apache 2.0. See [LICENSE](LICENSE).
-
-Built using the [GSD](https://github.com/gsd-build/get-shit-done) workflow
-methodology (MIT).
