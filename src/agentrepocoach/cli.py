@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from . import VERSION
-from .adapters import NoAdapterError
+from .adapters import NoAdapterError, _REGISTRY
 from .compute import compute_cah, compute_cah_all
 from .config import Config, ConfigError, load_config
 from .output import (
@@ -33,8 +33,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--repo",
         type=Path,
-        default=Path.cwd(),
-        help="Path to the repository to score (default: current directory).",
+        default=None,
+        help="Path to the repository to score (default: current directory). "
+             "You may also pass the path as a positional argument: agentrepocoach [PATH].",
     )
     parser.add_argument(
         "--config",
@@ -42,12 +43,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Explicit config file path (default: <repo>/.agentrepocoach.toml).",
     )
+    _adapter_names = "|".join(sorted(_REGISTRY)) + "|auto"
     lang_group = parser.add_mutually_exclusive_group()
     lang_group.add_argument(
         "--language",
         type=str,
         default=None,
-        help="Override language detection (csharp|go|python|rust|typescript|auto). Mutually exclusive with --all-languages.",
+        help=f"Override language detection ({_adapter_names}). Mutually exclusive with --all-languages.",
     )
     lang_group.add_argument(
         "--all-languages",
@@ -150,13 +152,40 @@ def _run_compare(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI, parse arguments, compute the CAH score, and write outputs."""
     parser = build_parser()
-    args = parser.parse_args(argv)
+
+    # Pre-process argv to support positional path: `agentrepocoach .`
+    # If the first non-option argument is not a known subcommand and looks like
+    # a path (not starting with '-'), inject it as `--repo` so argparse handles
+    # the rest normally. This preserves full backward-compat with `--repo` and
+    # with subcommands like `compare`.
+    _argv = list(argv) if argv is not None else sys.argv[1:]
+    _known_subcommands = {"compare"}
+    _positional_path: Path | None = None
+    if _argv and not _argv[0].startswith("-") and _argv[0] not in _known_subcommands:
+        _positional_path = Path(_argv[0])
+        _argv = _argv[1:]
+
+    args = parser.parse_args(_argv)
 
     # Dispatch subcommands
     if args.subcommand == "compare":
         return _run_compare(args)
 
-    repo_root = args.repo.resolve()
+    # Resolve repo path: --repo wins over positional; default is cwd.
+    if args.repo is not None and _positional_path is not None:
+        print(
+            "notice: both --repo and positional PATH given; --repo takes precedence.",
+            file=sys.stderr,
+        )
+        resolved_repo = args.repo
+    elif args.repo is not None:
+        resolved_repo = args.repo
+    elif _positional_path is not None:
+        resolved_repo = _positional_path
+    else:
+        resolved_repo = Path.cwd()
+
+    repo_root = resolved_repo.resolve()
     if not repo_root.is_dir():
         print(f"error: repo path is not a directory: {repo_root}", file=sys.stderr)
         return 2
