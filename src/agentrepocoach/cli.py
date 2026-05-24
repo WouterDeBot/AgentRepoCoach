@@ -8,8 +8,8 @@ from pathlib import Path
 
 from . import VERSION
 from .adapters import NoAdapterError
-from .compute import compute_cah
-from .config import ConfigError, load_config
+from .compute import compute_cah, compute_cah_all
+from .config import Config, ConfigError, load_config
 from .output import (
     format_comparison,
     format_comparison_markdown,
@@ -42,11 +42,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Explicit config file path (default: <repo>/.agentrepocoach.toml).",
     )
-    parser.add_argument(
+    lang_group = parser.add_mutually_exclusive_group()
+    lang_group.add_argument(
         "--language",
         type=str,
         default=None,
-        help="Override language detection (csharp|python|auto).",
+        help="Override language detection (csharp|go|python|rust|typescript|auto). Mutually exclusive with --all-languages.",
+    )
+    lang_group.add_argument(
+        "--all-languages",
+        action="store_true",
+        default=False,
+        dest="all_languages",
+        help="Score every detected language above threshold. Mutually exclusive with --language.",
     )
     parser.add_argument("--json", type=Path, help="Write full JSON result to this path.")
     parser.add_argument("--prometheus", type=Path, help="Write Prometheus metrics to this path.")
@@ -164,6 +172,9 @@ def main(argv: list[str] | None = None) -> int:
         from dataclasses import replace as _replace
         config = _replace(config, language=args.language)
 
+    if args.all_languages:
+        return _run_all_languages(repo_root, config, args)
+
     try:
         result = compute_cah(repo_root, config=config)
     except NoAdapterError as exc:
@@ -217,6 +228,51 @@ def main(argv: list[str] | None = None) -> int:
             print("error: --format both requires --output", file=sys.stderr)
             return 2
         _print_formatted(result, args.format)
+
+    return 0
+
+
+def _run_all_languages(
+    repo_root: Path,
+    config: Config,
+    args: argparse.Namespace,
+) -> int:
+    """Handle the --all-languages code path."""
+    try:
+        result = compute_cah_all(repo_root, config=config)
+    except (NoAdapterError, RuntimeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    languages: dict = result.get("languages", {})
+
+    if not languages:
+        print("No language met the detection threshold (confidence >= 0.5, file count >= 3).", file=sys.stderr)
+        return 2
+
+    # Text output: one summary block per language, separated by a header line.
+    if not args.quiet:
+        first = True
+        for lang_name, lang_result in languages.items():
+            if not first:
+                print()
+            print(f"=== Language: {lang_name} ===")
+            print(format_summary(lang_result))
+            first = False
+
+    # JSON file output: write the nested multi-language shape.
+    if args.json:
+        write_json(result, args.json)
+        if not args.quiet:
+            print(f"\nJSON report written to {args.json}")
+
+    # --format json to stdout.
+    if args.format == "json" and not args.output:
+        print(render_json(result))
+    elif args.format == "json" and args.output:
+        write_json(result, args.output)
+        if not args.quiet:
+            print(f"\nJSON report written to {args.output}")
 
     return 0
 
