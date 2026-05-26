@@ -6,6 +6,7 @@ from typing import Any
 
 from .adapters import LanguageAdapter, detect_all, detect_primary, get_adapter_by_name
 from .components import (
+    compute_bootstrap_signals,
     compute_decision_queryability,
     compute_error_quality,
     compute_module_hygiene,
@@ -44,6 +45,7 @@ def compute_cah(repo_root: Path, config: Config | None = None, adapter: Language
         "decision_queryability": compute_decision_queryability(repo_root, config, adapter),
         "test_quality": compute_test_quality(repo_root, config, adapter),
         "module_hygiene": compute_module_hygiene(repo_root, config, adapter),
+        "bootstrap_signals": compute_bootstrap_signals(repo_root, config, adapter),
     }
 
     total = 0.0

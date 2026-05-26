@@ -87,7 +87,7 @@ def test_module_hygiene_csharp_fixture_has_internal_visibility(csharp_fixture: P
 
 def test_compute_cah_csharp_fixture_produces_valid_result(csharp_fixture: Path) -> None:
     result = compute_cah(csharp_fixture)
-    assert result["schema_version"] == 1
+    assert result["schema_version"] == 2
     assert result["generator"].startswith("agentrepocoach ")
     assert result["language"] == "csharp"
     assert 0.0 <= result["total"] <= 100.0
@@ -97,6 +97,7 @@ def test_compute_cah_csharp_fixture_produces_valid_result(csharp_fixture: Path) 
         "decision_queryability",
         "test_quality",
         "module_hygiene",
+        "bootstrap_signals",
     }
 
 

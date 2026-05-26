@@ -23,21 +23,22 @@ def test_load_config_missing_file_returns_defaults(tmp_path: Path) -> None:
 def test_load_config_parses_custom_weights(tmp_path: Path) -> None:
     (tmp_path / ".agentrepocoach.toml").write_text(
         """
-schema_version = 1
+schema_version = 2
 language = "python"
 
 [weights]
-navigability = 0.30
-error_quality = 0.25
-decision_queryability = 0.20
-test_quality = 0.15
-module_hygiene = 0.10
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
 """,
     )
     config = load_config(tmp_path)
     assert config.language == "python"
-    assert config.weights["navigability"] == 0.30
-    assert config.weights["module_hygiene"] == 0.10
+    assert config.weights["navigability"] == 0.22
+    assert config.weights["module_hygiene"] == 0.13
 
 
 def test_load_config_rejects_unbalanced_weights(tmp_path: Path) -> None:
@@ -49,6 +50,7 @@ error_quality = 0.25
 decision_queryability = 0.20
 test_quality = 0.15
 module_hygiene = 0.15
+bootstrap_signals = 0.12
 """,
     )
     with pytest.raises(ConfigError, match="weights must sum to 1.0"):
@@ -99,3 +101,33 @@ domain_exception_types = ["FooError", "BarError"]
     )
     config = load_config(tmp_path)
     assert config.error_quality.domain_exception_types == ("FooError", "BarError")
+
+
+# --- ARC-005: schema v2 migration tests ---
+
+def test_load_config_v1_raises_with_migration_recipe(tmp_path: Path) -> None:
+    """AC-03/AC-04: loading a v1 config raises ConfigError with migration recipe."""
+    (tmp_path / ".agentrepocoach.toml").write_text("schema_version = 1\n")
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+    msg = str(exc_info.value)
+    assert "Unsupported schema_version 1" in msg
+    assert "schema_version = 2" in msg
+    assert "bootstrap_signals" in msg
+
+
+def test_load_config_v2_default_has_six_weights() -> None:
+    """AC-03/AC-04: default Config (no file) has 6 weights summing to 1.0."""
+    config = Config()
+    assert config.schema_version == 2
+    assert "bootstrap_signals" in config.weights
+    assert len(config.weights) == 6
+    assert sum(config.weights.values()) == pytest.approx(1.0, abs=0.01)
+
+
+def test_load_config_bootstrap_signals_defaults() -> None:
+    """AC-03: BootstrapSignalsConfig defaults are populated correctly."""
+    config = Config()
+    assert "pytest" in config.bootstrap_signals.test_command_patterns
+    assert "pip install" in config.bootstrap_signals.install_command_patterns
+    assert config.bootstrap_signals.readme_head_lines == 100
