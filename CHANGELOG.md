@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-05-24
+
+### Fixed
+
+- **Release integrity:** `--all-languages` flag was merged after v0.3.0 published to PyPI; v0.3.1 ships the flag to PyPI users
+- `--language` help text was stale (`csharp|python|auto`); now reflects the full registered adapter set (`csharp|go|python|rust|typescript|auto`)
+
+### Improved
+
+- `agentrepocoach .` (positional path) now works; matches industry convention (`ruff .`, `mypy .`)
+
 ## [0.3.0] — 2026-04-23
 
 ### Added
