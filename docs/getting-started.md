@@ -46,7 +46,9 @@ AgentRepoCoach targets Python 3.11+ (it uses `tomllib` from the stdlib).
 ```bash
 pip install agentrepocoach
 
-# Score the current directory
+# Score the current directory (positional path — matches ruff/mypy convention)
+agentrepocoach .
+# or equivalently:
 python -m agentrepocoach.cli --repo .
 
 # Write a JSON report
@@ -55,23 +57,27 @@ python -m agentrepocoach.cli --repo . --format json --output ./report.json
 # Per-sub-component breakdown
 python -m agentrepocoach.cli --repo . --verbose
 
+# Score all detected languages in a multi-language repo
+python -m agentrepocoach.cli --repo . --all-languages
+
 # Show the installed version
 python -m agentrepocoach.cli --version
 ```
 
 ## Reading the output
 
-Every run produces a composite score and five component scores:
+Every run produces a composite score and six component scores:
 
 ```
 AgentRepoCoach report — repo at .
 ==============================
 Total score:        82.47 / 100
-  navigability         22.10 / 25.00
-  error_quality        20.55 / 25.00
-  decision_queryability 15.82 / 20.00
-  test_quality         12.10 / 15.00
-  module_hygiene       11.90 / 15.00
+  navigability         19.45 / 22.00
+  error_quality        18.08 / 22.00
+  decision_queryability 14.24 / 18.00
+  test_quality         10.49 / 13.00
+  module_hygiene       10.31 / 13.00
+  bootstrap_signals    10.00 / 12.00
 ```
 
 Pass `--verbose` to see the sub-components that feed each score.
