@@ -6,7 +6,7 @@
 
 AgentRepoCoach is a single-process, zero-dependency Python CLI that scores a
 repository's readiness for AI coding agents. The tool reads files from disk
-(never modifies them), computes five component scores, and emits a weighted
+(never modifies them), computes six component scores, and emits a weighted
 composite score in JSON, Markdown, or Prometheus format.
 
 ## Data flow
@@ -34,6 +34,7 @@ Repository on disk
        |    +-- decision_queryability (decision_queryability.py)
        |    +-- test_quality (test_quality.py)
        |    +-- module_hygiene (module_hygiene.py)
+       |    +-- bootstrap_signals (bootstrap_signals.py)
        |
        v
   +-----------+
@@ -50,7 +51,7 @@ Parses command-line arguments, loads config, picks the adapter, calls
 success, 2 on user errors.
 
 ### `compute.py`
-The composite orchestrator. Calls all five component functions, applies
+The composite orchestrator. Calls all six component functions, applies
 config-driven weights, and assembles the final result dict. Also invokes the
 coaching engine to generate improvement recommendations.
 
@@ -64,7 +65,7 @@ Adapters handle file discovery, throw-site scanning, declaration scanning,
 and test-method detection using regex-only analysis (ADR-003).
 
 ### `components/`
-Five pure-function modules. Each receives `(repo_root, config, adapter)` and
+Six pure-function modules. Each receives `(repo_root, config, adapter)` and
 returns `{"score": float, "total": 100, "breakdown": {...}}`. Components
 never import each other -- they communicate only through the orchestrator.
 
