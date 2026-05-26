@@ -37,11 +37,12 @@ with five things that seemed to matter more than anything else:
 5. **Modules small enough to hold in your head.** No 2,000-line
    god files that burn a whole context window on a single scan.
 
-Those five things became the five components of a metric I started
-calling **CAH** — Codebase Agent Health. Each component is scored 0-100
-and weighted into a single 0-100 composite. The weights are heuristic
-(more on that below), but the sub-components are all things a static
-scanner can measure in under a second.
+Those five things became the original five components of a metric I
+started calling **CAH** — Codebase Agent Health; in v0.4.0 a sixth
+(`bootstrap_signals`) was added covering CI/README presence. Each
+component is scored 0-100 and weighted into a single 0-100 composite.
+The weights are heuristic (more on that below), but the sub-components
+are all things a static scanner can measure in under a second.
 
 Once the metric worked on one repo, the obvious next step was to turn
 it into a tool that anyone can run on their own code. That's
@@ -50,17 +51,22 @@ it into a tool that anyone can run on their own code. That's
 ## What AgentRepoCoach does
 
 AgentRepoCoach is a Python CLI and a GitHub Action. You point it at a repo
-and it produces a single 0-100 score plus a breakdown by component:
+and it produces a single 0-100 score plus a breakdown by component.
+Here is the actual v0.4.0 dogfood result on the AgentRepoCoach repo itself:
 
 ```
-AgentRepoCoach report — repo at .
-==============================
-Total score:        82.47 / 100
-  navigability         22.10 / 25.00
-  error_quality        20.55 / 25.00
-  decision_queryability 15.82 / 20.00
-  test_quality         12.10 / 15.00
-  module_hygiene       11.90 / 15.00
+AgentRepoCoach — Codebase Agent Health
+=================================
+Total score:   95.32 / 100
+Language:      python
+
+Components:
+  navigability              100.00 / 100   weight=0.22   contribution= 22.00
+  error_quality              80.00 / 100   weight=0.22   contribution= 17.60
+  decision_queryability     100.00 / 100   weight=0.18   contribution= 18.00
+  test_quality               97.82 / 100   weight=0.13   contribution= 12.72
+  module_hygiene            100.00 / 100   weight=0.13   contribution= 13.00
+  bootstrap_signals         100.00 / 100   weight=0.12   contribution= 12.00
 ```
 
 Every field in the report is a count, a percentage, or a file path —
@@ -94,23 +100,25 @@ embarrassing and very instructive.
 
 ## How it works
 
-AgentRepoCoach auto-detects the primary language of your repo (C# and
-Python are fully supported in v0.1.0; TypeScript, Rust, and Go are
-stubs waiting for contributors), loads a language adapter, and runs
-five component scorers against the adapter's view of the code. Every
-component is a handful of simple, transparent checks — no machine
-learning, no magic, no hidden weights. You can read all the source on
-GitHub in about an hour.
+AgentRepoCoach auto-detects the primary language of your repo, loads a
+language adapter, and runs six component scorers against the adapter's
+view of the code. All five adapters (C#, Python, TypeScript, Go, Rust)
+are full MVP since v0.2.0 — each includes throw-site scanners, doc
+detectors, test extractors, and synthetic fixtures. Every component is a
+handful of simple, transparent checks — no machine learning, no magic,
+no hidden weights. You can read all the source on GitHub in about an hour.
 
 ## About those weights
 
-The 25/25/20/15/15 split is heuristic. I did not fit weights against
-a labelled dataset of "agent success" because no such dataset exists
-yet. Instead, the weights encode two design judgments: first, that the
-two components an agent hits first in every session (navigation and
-error messages) should dominate the score; second, that test quality
+The 22/22/18/13/13/12 split is heuristic (rebalanced in v0.4.0 after
+adding `bootstrap_signals` as the 6th component). I did not fit weights
+against a labelled dataset of "agent success" because no such dataset
+exists yet. Instead, the weights encode two design judgments: first,
+that the two components an agent hits first in every session (navigation
+and error messages) should dominate the score; second, that test quality
 and module hygiene are tiebreakers that compound over time but rarely
-decide individual sessions.
+decide individual sessions. The full weight provenance and methodology
+are documented in `docs/METHODOLOGY.md`.
 
 If you have a better weighting — or a dataset that would let us fit
 weights empirically — please open an issue. I would rather rewrite the
@@ -119,31 +127,30 @@ to 90.
 
 ## Roadmap
 
-v0.1.0 is intentionally scoped small:
+v0.4.0 is a more mature state but still pre-1.0 (v0.x). The rough
+edges are real but the tool is dogfooded against its own repo (95.32/100)
+and has 155 tests:
 
-- [x] C# and Python adapters (full MVP)
+- [x] C#, Python, TypeScript, Go, Rust adapters (all full MVP since v0.2.0)
 - [x] GitHub Action + CLI
 - [x] TOML config with per-field overrides
 - [x] JSON + markdown output
-- [ ] TypeScript adapter (stub; contributions welcome)
-- [ ] Rust adapter (stub; contributions welcome)
-- [ ] Go adapter (stub; contributions welcome)
+- [x] bootstrap_signals component (CI-Signal + README-quality, added v0.4.0)
 - [ ] Multi-language monorepo scoring
 - [ ] A published case-study dataset so we can tune weights empirically
 
 ## Call for contributors
 
-AgentRepoCoach is Apache 2.0. The thing I would most love help with is a
-language adapter — each one is ~200-400 lines of Python and opens the
-tool up to a whole new ecosystem. After that, I would love people to
-run it against popular OSS repos and write up the before/after.
+AgentRepoCoach is Apache 2.0. The thing I would most love help with after
+language adapters is running the tool against popular OSS repos and
+writing up the before/after. A published dataset of scores would let us
+tune the weights empirically instead of relying on my heuristics.
 
 If you try it, the single most valuable feedback you can give me is
 **where the score is wrong**: a repo that scores low but is actually
 great, or a repo that scores high but is actually terrible. Either
 means my heuristics need work, and I want to know.
 
-Apache 2.0. This is v0.1.0 — it is going to have rough edges. Feedback
-very welcome.
+Apache 2.0. This is v0.4.0 — feedback very welcome.
 
 Repo: <REPO_URL>
