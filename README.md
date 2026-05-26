@@ -9,13 +9,14 @@
 
 AgentRepoCoach computes the **Codebase Agent Health (CAH)** score: a single 0-100
 composite measuring how friendly a repository is for autonomous AI agents.
-It blends five statically-measurable components:
+It blends six statically-measurable components:
 
-- **Navigability** (25%) — `AGENTS.md`, codebase map, CLI manifest, root cleanliness
-- **Error quality** (25%) — fix-hint coverage, exception typing, generic-exception dominance
-- **Decision queryability** (20%) — ADR catalog, inline reference resolution
-- **Test quality** (15%) — naming convention, helper presence, fixture duplication
-- **Module hygiene** (15%) — internal visibility, god files, doc coverage, architecture doc freshness
+- **Navigability** (22%) — `AGENTS.md`, codebase map, CLI manifest, root cleanliness
+- **Error quality** (22%) — fix-hint coverage, exception typing, generic-exception dominance
+- **Decision queryability** (18%) — ADR catalog, inline reference resolution
+- **Test quality** (13%) — naming convention, helper presence, fixture duplication
+- **Module hygiene** (13%) — internal visibility, god files, doc coverage, architecture doc freshness
+- **Bootstrap signals** (12%) — CI-Signal (runnable test workflow on PR triggers) + README-quality (install + test commands in first 100 lines)
 
 AgentRepoCoach ships with zero runtime dependencies — it uses the Python 3.11+
 standard library only, including `tomllib` for config parsing.
@@ -77,9 +78,21 @@ jobs:
 
 ## Usage as a CLI
 
+Install and run:
+
 ```bash
 pip install agentrepocoach
+```
 
+Run tests after contributing:
+
+```bash
+pytest tests/ -q
+```
+
+Score your repository:
+
+```bash
 # Score the current directory (prints a summary table)
 python -m agentrepocoach.cli --repo .
 
@@ -158,9 +171,18 @@ appear in:
 ## How it works
 
 AgentRepoCoach detects the primary language of the repo, loads a language
-adapter, and runs five component scorers against the adapter's view of
+adapter, and runs six component scorers against the adapter's view of
 the codebase. Each component returns a 0-100 sub-score with a transparent
 breakdown. The weighted sum is the composite CAH score.
+
+The six components are:
+
+- **Navigability** — checks for `AGENTS.md`, codebase map, CLI manifest, and root cleanliness.
+- **Error quality** — scores fix-hint coverage, exception typing, and generic-exception usage.
+- **Decision queryability** — audits ADR catalog completeness and inline ADR cross-references.
+- **Test quality** — checks test naming conventions, helper presence, and fixture duplication.
+- **Module hygiene** — inspects internal visibility ratios, god files, doc coverage, and architecture doc freshness.
+- **Bootstrap signals** — language-agnostic CI-Signal scorer (does the repo have a CI workflow triggered on pull requests?) and README-quality scorer (do the first 100 README lines contain both an install and a test command in fenced code blocks?). Both are configurable via `[bootstrap_signals]` in `.agentrepocoach.toml`.
 
 Every output field is a count, percentage, type name, or file path —
 AgentRepoCoach never emits code snippets or raw message bodies, so reports

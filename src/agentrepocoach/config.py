@@ -9,23 +9,34 @@ or unreadable, defaults are used.
 """
 from __future__ import annotations
 
+import sys
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+# Module-level guard: emit the soft-upgrade warning at most once per process
+# per schema version encountered.
+_warned_schemas: set[int] = set()
+
 # Schema version — bump on breaking config changes.
-CURRENT_SCHEMA_VERSION = 1
+# v1 → v2: Added 6th component ``bootstrap_signals`` (ARC-005). Existing
+# configs that pin all five weights must add ``bootstrap_signals`` to the
+# [weights] table and set ``schema_version = 2``.
+CURRENT_SCHEMA_VERSION = 2
 
 # Default component weights. Derived from methodology research: navigability
 # and error quality dominate because agents fail fastest on missing entry
-# points and unactionable errors.
+# points and unactionable errors. Rebalanced in v2 to accommodate the new
+# bootstrap_signals component (navigability 0.25→0.22, error_quality 0.25→0.22,
+# decision_queryability 0.20→0.18, test_quality 0.15→0.13, module_hygiene 0.15→0.13).
 DEFAULT_WEIGHTS: dict[str, float] = {
-    "navigability": 0.25,
-    "error_quality": 0.25,
-    "decision_queryability": 0.20,
-    "test_quality": 0.15,
-    "module_hygiene": 0.15,
+    "navigability": 0.22,
+    "error_quality": 0.22,
+    "decision_queryability": 0.18,
+    "test_quality": 0.13,
+    "module_hygiene": 0.13,
+    "bootstrap_signals": 0.12,
 }
 
 DEFAULT_EXCLUDES: tuple[str, ...] = (
@@ -114,6 +125,42 @@ class ModuleHygieneConfig:
 
 
 @dataclass(frozen=True)
+class BootstrapSignalsConfig:
+    """Settings for the bootstrap_signals component."""
+    install_command_patterns: tuple[str, ...] = (
+        "pip install",
+        "uv pip",
+        "npm install",
+        "npm ci",
+        "yarn install",
+        "cargo install",
+        "cargo build",
+        "go install",
+        "go get",
+        "dotnet add",
+        "dotnet restore",
+    )
+    test_command_patterns: tuple[str, ...] = (
+        "pytest",
+        "npm test",
+        "npm run test",
+        "go test",
+        "cargo test",
+        "dotnet test",
+        "make test",
+        "mvn test",
+        "gradle test",
+    )
+    ci_workflow_globs: tuple[str, ...] = (
+        ".github/workflows/*.yml",
+        ".github/workflows/*.yaml",
+        ".gitlab-ci.yml",
+        ".circleci/config.yml",
+    )
+    readme_head_lines: int = 100
+
+
+@dataclass(frozen=True)
 class PathConfig:
     """File and directory paths used by scoring components."""
     agents_md: str = "AGENTS.md"
@@ -139,6 +186,7 @@ class Config:
     error_quality: ErrorQualityConfig = field(default_factory=ErrorQualityConfig)
     test_quality: TestQualityConfig = field(default_factory=TestQualityConfig)
     module_hygiene: ModuleHygieneConfig = field(default_factory=ModuleHygieneConfig)
+    bootstrap_signals: BootstrapSignalsConfig = field(default_factory=BootstrapSignalsConfig)
 
 
 class ConfigError(ValueError):
@@ -168,12 +216,29 @@ def load_config(repo_root: Path, config_path: Path | None = None) -> Config:
 def _build_config_from_dict(raw: dict[str, Any]) -> Config:
     """Merge a parsed TOML dict into a Config with defaults applied."""
     schema_version = int(raw.get("schema_version", CURRENT_SCHEMA_VERSION))
-    if schema_version != CURRENT_SCHEMA_VERSION:
+    if schema_version > CURRENT_SCHEMA_VERSION:
         msg = f"Unsupported schema_version {schema_version}. This tool supports schema_version {CURRENT_SCHEMA_VERSION}."
         raise ConfigError(f"{msg} Try updating agentrepocoach or check the config file format at docs/configuration.md.")
 
+    if schema_version < CURRENT_SCHEMA_VERSION:
+        if schema_version not in _warned_schemas:
+            _warned_schemas.add(schema_version)
+            print(
+                f"agentrepocoach: WARNING: .agentrepocoach.toml uses schema_version {schema_version}; "
+                f"this tool ships schema_version {CURRENT_SCHEMA_VERSION}. Auto-upgrading in-memory; "
+                f"please bump your config and rebalance [weights]. See docs/configuration.md.",
+                file=sys.stderr,
+            )
+
     weights = dict(DEFAULT_WEIGHTS)
     weights.update(raw.get("weights", {}))
+
+    if schema_version < CURRENT_SCHEMA_VERSION:
+        current_sum = sum(weights.values())
+        if abs(current_sum - 1.0) > 0.01:
+            for k in weights:
+                weights[k] = weights[k] / current_sum
+
     _validate_weights(weights)
 
     return Config(
@@ -190,6 +255,7 @@ def _build_config_from_dict(raw: dict[str, Any]) -> Config:
         error_quality=_build_error_quality_config(raw.get("error_quality", {})),
         test_quality=_build_test_quality_config(raw.get("test_quality", {})),
         module_hygiene=_build_module_hygiene_config(raw.get("module_hygiene", {})),
+        bootstrap_signals=_build_bootstrap_signals_config(raw.get("bootstrap_signals", {})),
     )
 
 
@@ -198,11 +264,11 @@ def _validate_weights(weights: dict[str, float]) -> None:
     missing = set(DEFAULT_WEIGHTS) - set(weights)
     if missing:
         msg = f"Missing component weights: {sorted(missing)}."
-        raise ConfigError(f"{msg} Check that [weights] in .agentrepocoach.toml includes all five components. See docs/configuration.md.")
+        raise ConfigError(f"{msg} Check that [weights] in .agentrepocoach.toml includes all six components. See docs/configuration.md.")
     total = sum(weights[name] for name in DEFAULT_WEIGHTS)
     if abs(total - 1.0) > 0.01:
         msg = f"Component weights must sum to 1.0 (got {total:.3f})."
-        raise ConfigError(f"{msg} Check the [weights] section in .agentrepocoach.toml and ensure the five values add up to exactly 1.0.")
+        raise ConfigError(f"{msg} Check the [weights] section in .agentrepocoach.toml and ensure the six values add up to exactly 1.0.")
 
 
 def _build_path_config(raw: dict[str, Any]) -> PathConfig:
@@ -260,4 +326,17 @@ def _build_module_hygiene_config(raw: dict[str, Any]) -> ModuleHygieneConfig:
     return ModuleHygieneConfig(
         architecture_doc_fresh_days=int(raw.get("architecture_doc_fresh_days", 60)),
         internal_visibility_full_ratio=float(raw.get("internal_visibility_full_ratio", 0.10)),
+    )
+
+
+def _build_bootstrap_signals_config(raw: dict[str, Any]) -> BootstrapSignalsConfig:
+    install_patterns = raw.get("install_command_patterns")
+    test_patterns = raw.get("test_command_patterns")
+    ci_globs = raw.get("ci_workflow_globs")
+    defaults = BootstrapSignalsConfig()
+    return BootstrapSignalsConfig(
+        install_command_patterns=tuple(install_patterns) if install_patterns is not None else defaults.install_command_patterns,
+        test_command_patterns=tuple(test_patterns) if test_patterns is not None else defaults.test_command_patterns,
+        ci_workflow_globs=tuple(ci_globs) if ci_globs is not None else defaults.ci_workflow_globs,
+        readme_head_lines=int(raw.get("readme_head_lines", defaults.readme_head_lines)),
     )

@@ -7,6 +7,7 @@ import pytest
 
 from agentrepocoach.adapters import CSharpAdapter, PythonAdapter, detect_primary
 from agentrepocoach.components import (
+    compute_bootstrap_signals,
     compute_decision_queryability,
     compute_error_quality,
     compute_module_hygiene,
@@ -16,6 +17,8 @@ from agentrepocoach.components import (
 from agentrepocoach.compute import compute_cah
 from agentrepocoach.config import Config
 from agentrepocoach.scoring import scale_linear
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def test_scale_linear_basic() -> None:
@@ -87,7 +90,7 @@ def test_module_hygiene_csharp_fixture_has_internal_visibility(csharp_fixture: P
 
 def test_compute_cah_csharp_fixture_produces_valid_result(csharp_fixture: Path) -> None:
     result = compute_cah(csharp_fixture)
-    assert result["schema_version"] == 1
+    assert result["schema_version"] == 2
     assert result["generator"].startswith("agentrepocoach ")
     assert result["language"] == "csharp"
     assert 0.0 <= result["total"] <= 100.0
@@ -97,6 +100,7 @@ def test_compute_cah_csharp_fixture_produces_valid_result(csharp_fixture: Path) 
         "decision_queryability",
         "test_quality",
         "module_hygiene",
+        "bootstrap_signals",
     }
 
 
@@ -112,3 +116,87 @@ def test_compute_cah_error_quality_reallocated_weights(csharp_fixture: Path) -> 
     dq = result["components"]["decision_queryability"]
     max_score = sum(sub["max"] for sub in dq["breakdown"].values())
     assert max_score == 100  # 60 (adr_catalog) + 40 (inline_ref_resolution)
+
+
+# --- ARC-005: CI-signal sub-score tests (AC-01) ---
+
+# --- ARC-005: README-quality sub-score tests (AC-02) ---
+
+def test_readme_quality_absent_scores_zero(tmp_path: Path) -> None:
+    """AC-02: repo with no README scores 0 on readme_quality."""
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(tmp_path, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    assert rq["score"] == 0
+    assert rq["install_found"] is False
+    assert rq["test_found"] is False
+
+
+def test_readme_quality_install_only_scores_partial(tmp_path: Path) -> None:
+    """AC-02: README with install command only scores ~50% of readme_quality max."""
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "# Project\n\n## Install\n\n```bash\npip install myproject\n```\n",
+        encoding="utf-8",
+    )
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(tmp_path, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    # 25 pts for install found, 0 for no test command
+    assert rq["score"] == 25
+    assert rq["install_found"] is True
+    assert rq["test_found"] is False
+
+
+def test_readme_quality_full_scores_max() -> None:
+    """AC-02: README with both install and test commands scores >=80% of max (50 pts)."""
+    fixture = FIXTURES / "sample-readme-quality"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    # 25 pts install + 25 pts test = 50 (100% of max)
+    assert rq["score"] >= 40  # >= 80% of 50
+    assert rq["install_found"] is True
+    assert rq["test_found"] is True
+
+
+# --- ARC-005: CI-signal sub-score tests (AC-01) ---
+
+def test_ci_signal_absent_scores_zero() -> None:
+    """AC-01: repo with no CI artifacts scores 0 on ci_signal."""
+    fixture = FIXTURES / "sample-ci-signal-absent"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    ci = result["breakdown"]["ci_signal"]
+    assert ci["score"] == 0
+    assert ci["workflows_found"] == 0
+
+
+def test_ci_signal_present_no_pr_trigger_scores_partial() -> None:
+    """AC-01: repo with CI workflow but no pull_request trigger scores ~30/50."""
+    fixture = FIXTURES / "sample-ci-signal-no-pr"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    ci = result["breakdown"]["ci_signal"]
+    # 30 pts for having a workflow, 0 for no PR trigger -> 60% of 50 max
+    assert ci["score"] == 30
+    assert ci["pr_trigger"] is False
+    assert ci["workflows_found"] >= 1
+
+
+def test_ci_signal_present_with_pr_trigger_scores_full() -> None:
+    """AC-01: repo with CI workflow with pull_request trigger scores >=50% max (50 pts)."""
+    fixture = FIXTURES / "sample-ci-signal-good"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    ci = result["breakdown"]["ci_signal"]
+    # Full score: 30 + 20 = 50
+    assert ci["score"] == 50
+    assert ci["pr_trigger"] is True
+    assert ci["workflows_found"] >= 1

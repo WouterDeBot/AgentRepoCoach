@@ -4,7 +4,7 @@
 # user runs `python3 -m agentrepocoach.cli` and gets a sensible score even without
 # this file. Drop a `.agentrepocoach.toml` at your repo root to override defaults.
 
-schema_version = 1
+schema_version = 2
 
 # Language adapter to use. "auto" picks the highest-confidence adapter.
 # Valid: auto | csharp | python | typescript | rust | go
@@ -12,11 +12,13 @@ language = "auto"
 
 [weights]
 # Component weights. Must sum to 1.0 (tolerance 0.01).
-navigability = 0.25
-error_quality = 0.25
-decision_queryability = 0.20
-test_quality = 0.15
-module_hygiene = 0.15
+# v2 rebalance: added bootstrap_signals (ARC-005). See CHANGELOG.md.
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
 
 [paths]
 agents_md = "AGENTS.md"
