@@ -62,15 +62,16 @@ python -m agentrepocoach.cli --repo . --verbose
 
 ## What gets scored?
 
-AgentRepoCoach blends five statically-measurable components:
+AgentRepoCoach blends six statically-measurable components:
 
 | Component | Weight | What it checks |
 |---|---:|---|
-| **Navigability** | 25% | `AGENTS.md`, codebase map, CLI manifest, root cleanliness |
-| **Error quality** | 25% | Fix-hint coverage, domain exceptions, generic exception dominance |
-| **Decision queryability** | 20% | ADR catalog, inline reference resolution |
-| **Test quality** | 15% | Naming convention, helper presence, fixture duplication |
-| **Module hygiene** | 15% | Internal visibility, god files, doc coverage, architecture doc freshness |
+| **Navigability** | 22% | `AGENTS.md`, codebase map, CLI manifest, root cleanliness |
+| **Error quality** | 22% | Fix-hint coverage, domain exceptions, generic exception dominance |
+| **Decision queryability** | 18% | ADR catalog, inline reference resolution |
+| **Test quality** | 13% | Naming convention, helper presence, fixture duplication |
+| **Module hygiene** | 13% | Internal visibility, god files, doc coverage, architecture doc freshness |
+| **Bootstrap signals** | 12% | CI workflow presence (on PR triggers) + install/test commands in README |
 
 See [Scoring]({{ "/scoring" | relative_url }}) for the exact formula and
 sub-component breakdown.
