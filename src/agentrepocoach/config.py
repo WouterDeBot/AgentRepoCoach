@@ -114,6 +114,42 @@ class ModuleHygieneConfig:
 
 
 @dataclass(frozen=True)
+class BootstrapSignalsConfig:
+    """Settings for the bootstrap_signals component."""
+    install_command_patterns: tuple[str, ...] = (
+        "pip install",
+        "uv pip",
+        "npm install",
+        "npm ci",
+        "yarn install",
+        "cargo install",
+        "cargo build",
+        "go install",
+        "go get",
+        "dotnet add",
+        "dotnet restore",
+    )
+    test_command_patterns: tuple[str, ...] = (
+        "pytest",
+        "npm test",
+        "npm run test",
+        "go test",
+        "cargo test",
+        "dotnet test",
+        "make test",
+        "mvn test",
+        "gradle test",
+    )
+    ci_workflow_globs: tuple[str, ...] = (
+        ".github/workflows/*.yml",
+        ".github/workflows/*.yaml",
+        ".gitlab-ci.yml",
+        ".circleci/config.yml",
+    )
+    readme_head_lines: int = 100
+
+
+@dataclass(frozen=True)
 class PathConfig:
     """File and directory paths used by scoring components."""
     agents_md: str = "AGENTS.md"
@@ -139,6 +175,7 @@ class Config:
     error_quality: ErrorQualityConfig = field(default_factory=ErrorQualityConfig)
     test_quality: TestQualityConfig = field(default_factory=TestQualityConfig)
     module_hygiene: ModuleHygieneConfig = field(default_factory=ModuleHygieneConfig)
+    bootstrap_signals: BootstrapSignalsConfig = field(default_factory=BootstrapSignalsConfig)
 
 
 class ConfigError(ValueError):
