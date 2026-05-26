@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentrepocoach"
-version = "0.3.1"
+version = "0.4.0"
 description = "Score your codebase on how ready it is for AI agents — and coach you through the fixes."
 readme = "README.md"
 license = { text = "Apache-2.0" }
