@@ -7,6 +7,7 @@ import pytest
 
 from agentrepocoach.adapters import CSharpAdapter, PythonAdapter, detect_primary
 from agentrepocoach.components import (
+    compute_bootstrap_signals,
     compute_decision_queryability,
     compute_error_quality,
     compute_module_hygiene,
@@ -16,6 +17,8 @@ from agentrepocoach.components import (
 from agentrepocoach.compute import compute_cah
 from agentrepocoach.config import Config
 from agentrepocoach.scoring import scale_linear
+
+FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def test_scale_linear_basic() -> None:
@@ -113,3 +116,42 @@ def test_compute_cah_error_quality_reallocated_weights(csharp_fixture: Path) -> 
     dq = result["components"]["decision_queryability"]
     max_score = sum(sub["max"] for sub in dq["breakdown"].values())
     assert max_score == 100  # 60 (adr_catalog) + 40 (inline_ref_resolution)
+
+
+# --- ARC-005: CI-signal sub-score tests (AC-01) ---
+
+def test_ci_signal_absent_scores_zero() -> None:
+    """AC-01: repo with no CI artifacts scores 0 on ci_signal."""
+    fixture = FIXTURES / "sample-ci-signal-absent"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    ci = result["breakdown"]["ci_signal"]
+    assert ci["score"] == 0
+    assert ci["workflows_found"] == 0
+
+
+def test_ci_signal_present_no_pr_trigger_scores_partial() -> None:
+    """AC-01: repo with CI workflow but no pull_request trigger scores ~30/50."""
+    fixture = FIXTURES / "sample-ci-signal-no-pr"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    ci = result["breakdown"]["ci_signal"]
+    # 30 pts for having a workflow, 0 for no PR trigger -> 60% of 50 max
+    assert ci["score"] == 30
+    assert ci["pr_trigger"] is False
+    assert ci["workflows_found"] >= 1
+
+
+def test_ci_signal_present_with_pr_trigger_scores_full() -> None:
+    """AC-01: repo with CI workflow with pull_request trigger scores >=50% max (50 pts)."""
+    fixture = FIXTURES / "sample-ci-signal-good"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    ci = result["breakdown"]["ci_signal"]
+    # Full score: 30 + 20 = 50
+    assert ci["score"] == 50
+    assert ci["pr_trigger"] is True
+    assert ci["workflows_found"] >= 1
