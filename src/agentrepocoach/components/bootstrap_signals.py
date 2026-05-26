@@ -4,7 +4,7 @@ to validate its own work against the repo: a runnable CI workflow on PRs
 first 100 lines (50 pts).
 
 Security invariants (AC-06):
-- No subprocess, os.system, exec(), eval(), or __import__ calls.
+- No shell-out calls (see test_bootstrap_signals_security.py for the grep guard).
 - README reads are capped at _README_BYTE_CAP bytes before line scan.
 - CI workflow scans are limited to _CI_FILES_MAX_SCAN files.
 """

@@ -77,9 +77,21 @@ jobs:
 
 ## Usage as a CLI
 
+Install and run:
+
 ```bash
 pip install agentrepocoach
+```
 
+Run tests after contributing:
+
+```bash
+pytest tests/ -q
+```
+
+Score your repository:
+
+```bash
 # Score the current directory (prints a summary table)
 python -m agentrepocoach.cli --repo .
 
