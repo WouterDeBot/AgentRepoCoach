@@ -120,6 +120,51 @@ def test_compute_cah_error_quality_reallocated_weights(csharp_fixture: Path) -> 
 
 # --- ARC-005: CI-signal sub-score tests (AC-01) ---
 
+# --- ARC-005: README-quality sub-score tests (AC-02) ---
+
+def test_readme_quality_absent_scores_zero(tmp_path: Path) -> None:
+    """AC-02: repo with no README scores 0 on readme_quality."""
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(tmp_path, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    assert rq["score"] == 0
+    assert rq["install_found"] is False
+    assert rq["test_found"] is False
+
+
+def test_readme_quality_install_only_scores_partial(tmp_path: Path) -> None:
+    """AC-02: README with install command only scores ~50% of readme_quality max."""
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "# Project\n\n## Install\n\n```bash\npip install myproject\n```\n",
+        encoding="utf-8",
+    )
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(tmp_path, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    # 25 pts for install found, 0 for no test command
+    assert rq["score"] == 25
+    assert rq["install_found"] is True
+    assert rq["test_found"] is False
+
+
+def test_readme_quality_full_scores_max() -> None:
+    """AC-02: README with both install and test commands scores >=80% of max (50 pts)."""
+    fixture = FIXTURES / "sample-readme-quality"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    # 25 pts install + 25 pts test = 50 (100% of max)
+    assert rq["score"] >= 40  # >= 80% of 50
+    assert rq["install_found"] is True
+    assert rq["test_found"] is True
+
+
+# --- ARC-005: CI-signal sub-score tests (AC-01) ---
+
 def test_ci_signal_absent_scores_zero() -> None:
     """AC-01: repo with no CI artifacts scores 0 on ci_signal."""
     fixture = FIXTURES / "sample-ci-signal-absent"
