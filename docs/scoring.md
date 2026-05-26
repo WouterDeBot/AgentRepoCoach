@@ -7,24 +7,25 @@ permalink: /scoring/
 # Scoring
 
 AgentRepoCoach produces a **Codebase Agent Health (CAH)** composite score on a
-0-100 scale. It blends five components, each independently scored 0-100,
+0-100 scale. It blends six components, each independently scored 0-100,
 with weights that sum to 1.0.
 
 ## The composite formula
 
 ```
-CAH = 0.25 * navigability
-    + 0.25 * error_quality
-    + 0.20 * decision_queryability
-    + 0.15 * test_quality
-    + 0.15 * module_hygiene
+CAH = 0.22 * navigability
+    + 0.22 * error_quality
+    + 0.18 * decision_queryability
+    + 0.13 * test_quality
+    + 0.13 * module_hygiene
+    + 0.12 * bootstrap_signals
 ```
 
 Every component returns a number between 0 and 100. The weighted sum
 lands on the same 0-100 scale, which makes CAH directly comparable
 across repos and over time.
 
-## Component 1 — Navigability (25%)
+## Component 1 — Navigability (22%)
 
 **Question:** How easily does an AI agent find the entry points to this repo?
 
@@ -35,7 +36,7 @@ across repos and over time.
 | CLI manifest fresh and complete | 20 | Does `docs/cli-manifest.json` exist, have at least N commands, and was touched in the last 7 days? |
 | Root directory cleanliness | 20 | Are there stale artifacts (`.json`, `.bak`, `-results.*`) outside the allow-list? |
 
-## Component 2 — Error quality (25%)
+## Component 2 — Error quality (22%)
 
 **Question:** How actionable are the repo's exceptions?
 
@@ -45,7 +46,7 @@ across repos and over time.
 | User-defined exception ratio | 30 | Percentage of throws that use a domain exception class (not a stdlib generic). |
 | Generic exception dominance | 20 | Do stdlib generics (`Exception`, `RuntimeError`, etc.) stay under 20% of throw sites? |
 
-## Component 3 — Decision queryability (20%)
+## Component 3 — Decision queryability (18%)
 
 **Question:** How easily can an agent discover *why* the code is the way it is?
 
@@ -54,7 +55,7 @@ across repos and over time.
 | ADR catalog | 60 | Does the configured ADR directory contain at least N files with valid frontmatter (`id:` key)? |
 | Inline reference resolution | 40 | Percentage of inline decision tokens (e.g. `ADR-123`) in production source that resolve to an ADR body or filename. |
 
-## Component 4 — Test quality (15%)
+## Component 4 — Test quality (13%)
 
 **Question:** Can an agent read a test name and know what it asserts?
 
@@ -64,7 +65,7 @@ across repos and over time.
 | Helper file count | 30 | Does the repo have reusable test-helper files, not copy-paste fixtures? |
 | Fixture duplication | 30 | Do configured duplication patterns stay rare? (Empty by default.) |
 
-## Component 5 — Module hygiene (15%)
+## Component 5 — Module hygiene (13%)
 
 **Question:** Is the production tree organized neatly?
 
@@ -75,19 +76,33 @@ across repos and over time.
 | Doc-comment coverage | 20 | Percentage of public declarations with a doc comment. |
 | Architecture doc freshness | 20 | Does the architecture doc exist and has it been touched recently? |
 
+## Component 6 — Bootstrap signals (12%)
+
+**Question:** Can a new contributor (or agent) install and run tests without
+reading the full docs?
+
+| Sub-component | Weight | What it measures |
+|---|---:|---|
+| CI-Signal | 50 | Does the repo define a runnable CI workflow? +30 pts for any workflow file, +20 pts when a workflow triggers on `pull_request`. |
+| README-quality | 50 | Does the README's first 100 lines contain both an install command and a test command in fenced code blocks? |
+
+Both are configurable via `[bootstrap_signals]` in `.agentrepocoach.toml`.
+
 ## Why these weights?
 
-The 25/25/20/15/15 split is **heuristic, not empirically derived**. It
+The 22/22/18/13/13/12 split is **heuristic, not empirically derived**. It
 reflects a preference for the two components that pay off first on
 almost any real repo:
 
-- **Navigability** and **error quality** (50% of the score combined)
+- **Navigability** and **error quality** (44% of the score combined)
   are what an agent hits first in every single session. Bad `AGENTS.md`
   and opaque errors waste context on the most frequent path.
-- **Decision queryability** (20%) starts to matter once the agent is
+- **Decision queryability** (18%) starts to matter once the agent is
   past the "where am I?" phase and is asking "why?".
-- **Test quality** and **module hygiene** (15% each) are tiebreakers —
+- **Test quality** and **module hygiene** (13% each) are tiebreakers —
   they compound over time but don't gate short sessions.
+- **Bootstrap signals** (12%) is the floor — a repo that can't be
+  installed or has no CI is hostile regardless of the other scores.
 
 If you disagree, tune the weights in `.agentrepocoach.toml`. They must still
 sum to 1.0 — AgentRepoCoach refuses to run otherwise.
@@ -96,15 +111,16 @@ sum to 1.0 — AgentRepoCoach refuses to run otherwise.
 
 ```json
 {
-  "schema_version": 1,
-  "generator": "agentrepocoach 0.1.0",
+  "schema_version": 2,
+  "generator": "agentrepocoach 0.4.0",
   "total": 82.47,
   "components": {
-    "navigability": { "score": 88.40, "weighted": 22.10, "sub_components": [...] },
-    "error_quality": { "score": 82.20, "weighted": 20.55, "sub_components": [...] },
-    "decision_queryability": { "score": 79.10, "weighted": 15.82, "sub_components": [...] },
-    "test_quality": { "score": 80.67, "weighted": 12.10, "sub_components": [...] },
-    "module_hygiene": { "score": 79.33, "weighted": 11.90, "sub_components": [...] }
+    "navigability": { "score": 88.40, "weighted": 19.45, "sub_components": [...] },
+    "error_quality": { "score": 82.20, "weighted": 18.08, "sub_components": [...] },
+    "decision_queryability": { "score": 79.10, "weighted": 14.24, "sub_components": [...] },
+    "test_quality": { "score": 80.67, "weighted": 10.49, "sub_components": [...] },
+    "module_hygiene": { "score": 79.33, "weighted": 10.31, "sub_components": [...] },
+    "bootstrap_signals": { "score": 83.33, "weighted": 10.00, "sub_components": [...] }
   }
 }
 ```
