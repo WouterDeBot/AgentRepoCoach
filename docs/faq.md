@@ -32,9 +32,9 @@ human-facing quality gate and an agent-facing readiness score.
 |---|---|---|
 | C# | Full MVP | Throw-site scanner, XML doc detection, internal visibility, .sln/.csproj discovery |
 | Python | Full MVP | Raise-site scanner, docstring detection, top-level visibility, `src/` layout |
-| TypeScript | Stub | Language detected, adapter raises `NotImplementedError` |
-| Rust | Stub | Same as above |
-| Go | Stub | Same as above |
+| TypeScript | Full MVP | Throw-site scanner with multi-line context, JSDoc detection, Jest/Vitest test extraction |
+| Rust | Full MVP | `panic!`/`Err(Custom)` mapping, `///` doc comment detection, `#[test]` attribute detection |
+| Go | Full MVP | `errors.New`/`fmt.Errorf`/custom error mapping, Go doc comment detection, `Test*` function extraction |
 
 ### How do I add a language?
 
