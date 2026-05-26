@@ -118,16 +118,19 @@ AgentRepoCoach looks for `.agentrepocoach.toml` at the repo root. Every field is
 optional — the tool ships with sensible defaults and will score zero-config
 repos without complaint.
 
-Minimal example:
+Minimal example (schema v2, required since v0.4.0):
 
 ```toml
 # .agentrepocoach.toml
+schema_version = 2
+
 [weights]
-navigability = 0.25
-error_quality = 0.25
-decision_queryability = 0.20
-test_quality = 0.15
-module_hygiene = 0.15
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
 
 [paths]
 adr_dir = "docs/adr/"
@@ -138,7 +141,16 @@ domain_exception_types = ["DomainError", "ValidationError"]
 
 [decision_queryability]
 inline_ref_patterns = ["ADR-\\d+"]
+
+# Optional: tune bootstrap_signals detection globs / patterns
+[bootstrap_signals]
+ci_workflow_globs = [".github/workflows/*.yml", ".gitlab-ci.yml"]
 ```
+
+**Migrating from v1?** Add `schema_version = 2` at the top and add
+`bootstrap_signals = 0.12` to `[weights]`, then rebalance the other five
+weights so they still sum to 1.0. See [`docs/configuration.md`](docs/configuration.md)
+for the one-line migration recipe.
 
 See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for the full config schema
 and scoring formula.

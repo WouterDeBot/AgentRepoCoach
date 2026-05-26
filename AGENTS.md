@@ -36,9 +36,10 @@ ruff check src/ tests/
 | `src/agentrepocoach/cli.py` | CLI entry point (`main()`) |
 | `src/agentrepocoach/compute.py` | Composite score orchestrator |
 | `src/agentrepocoach/adapters/` | Language adapters (one file per language) |
-| `src/agentrepocoach/components/` | Five scoring components |
+| `src/agentrepocoach/components/` | Six scoring components |
+| `src/agentrepocoach/components/bootstrap_signals.py` | Sixth component: CI-Signal + README-quality (v0.4.0) |
 | `src/agentrepocoach/output.py` | Output formatters (JSON, Markdown, terminal) |
-| `src/agentrepocoach/config.py` | TOML config loader |
+| `src/agentrepocoach/config.py` | TOML config loader (schema_version = 2 required) |
 | `action.yml` | GitHub Actions composite action definition |
 
 ## Adding a new language adapter

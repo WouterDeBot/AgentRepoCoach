@@ -35,13 +35,14 @@ AgentRepoCoach computes the **Codebase Agent Health (CAH)** score: a single
 AI agents (Claude Code, Cursor, Aider, Continue, OpenHands, and the
 rest of the wave).
 
-It blends five statically-measurable components:
+It blends six statically-measurable components:
 
-- **Navigability (25%)** — `AGENTS.md` presence, codebase map, CLI manifest, root cleanliness
-- **Error quality (25%)** — fix-hint coverage, exception typing, generic-exception dominance
-- **Decision queryability (20%)** — ADR catalog, inline reference resolution
-- **Test quality (15%)** — naming convention, helper presence, fixture duplication
-- **Module hygiene (15%)** — internal visibility, god files, doc coverage, architecture doc freshness
+- **Navigability (22%)** — `AGENTS.md` presence, codebase map, CLI manifest, root cleanliness
+- **Error quality (22%)** — fix-hint coverage, exception typing, generic-exception dominance
+- **Decision queryability (18%)** — ADR catalog, inline reference resolution
+- **Test quality (13%)** — naming convention, helper presence, fixture duplication
+- **Module hygiene (13%)** — internal visibility, god files, doc coverage, architecture doc freshness
+- **Bootstrap signals (12%)** — CI workflow on PR triggers, install + test commands in README
 
 ### Why it exists
 
@@ -54,7 +55,7 @@ plumbing — and shows you exactly which files to fix first.
 ### Features
 
 - Zero runtime dependencies (Python 3.11+ stdlib only)
-- Full support for 5 languages: C#, Python, TypeScript, Go, and Rust
+- Full support for 5 languages: C#, Python, TypeScript, Go, and Rust (schema v2, 6 components)
 - Coaching recommendations — top-3 actionable fix tips ranked by weighted impact
 - TOML config (`.agentrepocoach.toml`) with sensible zero-config defaults
 - JSON and Markdown output formats
@@ -81,7 +82,7 @@ jobs:
 
       - name: Run AgentRepoCoach
         id: agentrepocoach
-        uses: WouterDeBot/agentrepocoach@v0.2.0
+        uses: WouterDeBot/agentrepocoach@v1
         with:
           repo-path: .
           output-format: json
@@ -127,4 +128,4 @@ Free (Apache 2.0 OSS).
 - No `secrets` are read by the action. No outbound network calls
   beyond `pip install` of the action's own package on the runner.
 - All inputs default to safe values; the action runs out-of-the-box
-  with `uses: WouterDeBot/agentrepocoach@v0.2.0` and zero `with:` keys.
+  with `uses: WouterDeBot/agentrepocoach@v1` and zero `with:` keys.

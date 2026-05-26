@@ -5,7 +5,7 @@ This document defines the **Codebase Agent Health (CAH)** score: a single
 agents. It also records the design decisions behind the metric so that
 contributors can argue with the methodology, not just the code.
 
-## Why these 5 components?
+## Why these 6 components?
 
 Most "code quality" metrics were designed for humans. They count lines,
 track duplication, and flag security hotspots — all useful, but all
@@ -27,18 +27,23 @@ one of five buckets:
 5. **The agent drowned in god files.** A 2,000-line file burns the whole
    context window; structure would have saved 90% of the tokens.
 
-Each of the five CAH components targets exactly one of these failure
-modes. That is why there are five, not three and not twelve: we wanted
+A sixth concern cuts across all of these: **can the repo even be set up?**
+An agent (or human) that can't install and run tests is stuck before writing
+a single line. The `bootstrap_signals` component captures this.
+
+Each of the six CAH components targets exactly one of these failure
+modes. That is why there are six, not three and not twelve: we wanted
 enough coverage to reflect real sessions, and few enough that every
 component has a clear behavioural story.
 
 ## The composite formula
 
-    CAH = 0.25 * navigability
-        + 0.25 * error_quality
-        + 0.20 * decision_queryability
-        + 0.15 * test_quality
-        + 0.15 * module_hygiene
+    CAH = 0.22 * navigability
+        + 0.22 * error_quality
+        + 0.18 * decision_queryability
+        + 0.13 * test_quality
+        + 0.13 * module_hygiene
+        + 0.12 * bootstrap_signals
 
 Every component is computed by walking the working tree — no network,
 no database, no language runtime invocations. The score is informational;
@@ -47,7 +52,7 @@ one via `fail-threshold`).
 
 ## How weights were chosen
 
-The 25/25/20/15/15 split is **heuristic, not empirically derived**. We
+The 22/22/18/13/13/12 split is **heuristic, not empirically derived**. We
 did not run a multi-repo regression to fit weights against some
 downstream "agent success" label because no such labelled dataset
 exists yet (and we suspect building one would take a year).
@@ -61,8 +66,11 @@ Instead, the weights encode two design judgments:
    frequent impact.
 2. **Test quality and module hygiene are tiebreakers.** They compound
    over many sessions but rarely determine whether a single session
-   succeeds. 15% each reflects that — enough to matter, not enough to
+   succeeds. 13% each reflects that — enough to matter, not enough to
    swamp.
+3. **Bootstrap signals (12%) is the floor.** A repo that can't be
+   installed or has no CI workflow is hostile to agents regardless of
+   how well the other five components score.
 
 We explicitly recommend against "tuning your weights until your repo
 scores well." The weights exist so that **cross-repo comparisons** are
@@ -74,7 +82,7 @@ tune their way to 90.
 
 ## Components
 
-### 1. Navigability (25 pts)
+### 1. Navigability (22 pts)
 
 How easily does an agent find the entry points to the repo?
 
@@ -85,7 +93,7 @@ How easily does an agent find the entry points to the repo?
 | CLI manifest is fresh and complete | 20 | Does `docs/cli-manifest.json` exist, have at least N commands, and has been touched in the last 7 days? |
 | Root directory cleanliness | 20 | Are there stale artifacts (`.json`, `.bak`, `-results.*`) outside the configured allow-list? |
 
-### 2. Error quality (25 pts)
+### 2. Error quality (22 pts)
 
 How actionable are the repo's exceptions?
 
@@ -95,7 +103,7 @@ How actionable are the repo's exceptions?
 | User-defined exception ratio | 30 | What percentage of throws use a user-defined (domain) exception class rather than a stdlib generic? |
 | Generic exception dominance | 20 | Do language-stdlib generic exceptions (`Exception`, `RuntimeError`, etc.) stay under 20% of throw sites? |
 
-### 3. Decision queryability (20 pts)
+### 3. Decision queryability (18 pts)
 
 How easily can an agent discover **why** the code is the way it is?
 
@@ -104,7 +112,7 @@ How easily can an agent discover **why** the code is the way it is?
 | ADR catalog | 60 | Does the configured ADR directory contain at least N files with valid frontmatter (`id:` key)? |
 | Inline reference resolution | 40 | What percentage of inline decision tokens (e.g. `ADR-123`) in production source resolve to an ADR body or filename? |
 
-### 4. Test quality (15 pts)
+### 4. Test quality (13 pts)
 
 Can an agent read a test name and know what it asserts?
 
@@ -114,7 +122,7 @@ Can an agent read a test name and know what it asserts?
 | Helper file count | 30 | Does the repo have enough reusable test-helper files to discourage copy-paste fixtures? |
 | Fixture duplication | 30 | Do configured fixture-duplication patterns stay rare? (Empty by default — full credit unless opted in.) |
 
-### 5. Module hygiene (15 pts)
+### 5. Module hygiene (13 pts)
 
 Is the production tree organized neatly?
 
@@ -124,6 +132,20 @@ Is the production tree organized neatly?
 | God files | 30 | How many production files exceed the configured LOC ceiling? (Lower is better.) |
 | Doc-comment coverage | 20 | What percentage of public declarations have a doc comment attached? |
 | Architecture doc freshness | 20 | Does the configured architecture doc exist and has it been touched in the last 60 days? |
+
+### 6. Bootstrap signals (12 pts)
+
+Can a new contributor (or agent) install and run tests in the repo without
+reading the full docs?
+
+| Sub-component | Weight | What it measures |
+|---|---:|---|
+| CI-Signal | 50 | Does the repo define a runnable CI workflow (`.github/workflows/*.yml`, `.gitlab-ci.yml`, `.circleci/config.yml`)? +30 pts for any workflow file, +20 pts when a workflow triggers on `pull_request`. |
+| README-quality | 50 | Does the README's first 100 lines contain both an install command (`pip install`, `npm install`, `cargo`, `go install`, etc.) and a test command (`pytest`, `npm test`, `go test`, etc.) in fenced code blocks? |
+
+Both sub-components are configurable via `[bootstrap_signals]` in
+`.agentrepocoach.toml`. See the configuration reference for glob overrides
+and pattern lists.
 
 ## Limitations
 
@@ -209,5 +231,7 @@ stub), implement the nine methods, and register the class in
 
 All thresholds, weights, paths, and patterns are configurable via
 `.agentrepocoach.toml` at the repo root. The tool ships with sensible
-defaults — the config file is opt-in tuning. See the reference config
-shipped at the repo root for the full schema.
+defaults — the config file is opt-in tuning. Config files must declare
+`schema_version = 2` (introduced in v0.4.0 alongside the 6th component).
+See [`docs/configuration.md`](configuration.md) for the full schema
+and the v1→v2 migration recipe.
