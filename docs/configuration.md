@@ -10,31 +10,69 @@ AgentRepoCoach looks for `.agentrepocoach.toml` at the root of the scanned repo.
 Every field is optional — the defaults are designed to produce a sensible
 score on a zero-config Python or C# repo.
 
+## Schema version migration (v1 → v2)
+
+AgentRepoCoach v0.4.0 introduces a 6th component (`bootstrap_signals`) and bumps
+the config schema from v1 to v2. If you have an existing `.agentrepocoach.toml`
+with `schema_version = 1`, you will see:
+
+```
+error: Unsupported schema_version 1. This tool requires schema_version 2.
+To migrate from v1 to v2: set `schema_version = 2` in your .agentrepocoach.toml
+and add `bootstrap_signals = 0.12` to the [weights] table ...
+```
+
+**One-line migration recipe:**
+
+1. Change `schema_version = 1` to `schema_version = 2`.
+2. Add `bootstrap_signals = 0.12` to the `[weights]` table.
+3. Adjust the other five weights so they still sum to 1.0 (e.g. reduce each by 0.02–0.03).
+
+Example v2 weights block:
+
+```toml
+schema_version = 2
+
+[weights]
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
+```
+
 ## Minimal example
 
 ```toml
 # .agentrepocoach.toml
+schema_version = 2
+
 [weights]
-navigability = 0.25
-error_quality = 0.25
-decision_queryability = 0.20
-test_quality = 0.15
-module_hygiene = 0.15
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
 ```
 
-The five weights must sum to **1.0**; AgentRepoCoach refuses to run if they
+The six weights must sum to **1.0**; AgentRepoCoach refuses to run if they
 don't. This is intentional — a silent drift would invalidate any
 cross-repo comparison of scores.
 
 ## Full reference
 
 ```toml
+schema_version = 2
+
 [weights]
-navigability = 0.25
-error_quality = 0.25
-decision_queryability = 0.20
-test_quality = 0.15
-module_hygiene = 0.15
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
 
 [paths]
 agents_md = "AGENTS.md"
@@ -64,13 +102,36 @@ fixture_duplication_patterns = []
 [module_hygiene]
 god_file_loc_ceiling = 500
 architecture_doc_max_age_days = 60
+
+[bootstrap_signals]
+# Glob patterns for CI workflow files. Add custom entries for Buildkite, Drone, etc.
+ci_workflow_globs = [
+    ".github/workflows/*.yml",
+    ".github/workflows/*.yaml",
+    ".gitlab-ci.yml",
+    ".circleci/config.yml",
+]
+# Install commands to detect in README fenced code blocks (first 100 lines).
+install_command_patterns = [
+    "pip install", "uv pip", "npm install", "npm ci",
+    "yarn install", "cargo install", "cargo build",
+    "go install", "go get", "dotnet add", "dotnet restore",
+]
+# Test commands to detect in README fenced code blocks (first 100 lines).
+test_command_patterns = [
+    "pytest", "npm test", "npm run test",
+    "go test", "cargo test", "dotnet test",
+    "make test", "mvn test", "gradle test",
+]
+# Number of README lines to scan. Increase if your install instructions appear later.
+readme_head_lines = 100
 ```
 
 ## How the defaults were picked
 
-- **Weights** (25/25/20/15/15): chosen heuristically to reward the two
-  things that pay off first — navigation and actionable errors — while
-  keeping test and module hygiene as non-trivial tiebreakers.
+- **Weights** (22/22/18/13/13/12): rebalanced in v2 to accommodate the 6th
+  `bootstrap_signals` component while keeping navigability and error quality
+  as the top priorities.
 - **CLI manifest 7-day freshness window**: short enough to catch manifests
   that fell out of sync with the CLI, long enough to tolerate one week off.
 - **Generic exception ceiling 20%**: in practice, well-typed codebases land

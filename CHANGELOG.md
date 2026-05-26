@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-26
+
+### Added
+
+- **CI-Signal scorer** (`bootstrap_signals` component, 50 pts): detects whether the repo defines
+  a runnable CI workflow (`.github/workflows/*.yml`, `.gitlab-ci.yml`, `.circleci/config.yml`).
+  Awards 30 pts for any workflow file, +20 pts when a workflow triggers on `pull_request`.
+  Configurable via `[bootstrap_signals.ci_workflow_globs]` for non-mainstream CI providers.
+- **README-quality scorer** (`bootstrap_signals` component, 50 pts): detects whether the
+  README's first 100 lines contain both an install command (`pip install`, `npm install`,
+  `cargo`, `go install`, `dotnet add`, etc.) and a test command (`pytest`, `npm test`,
+  `go test`, `cargo test`, `dotnet test`, etc.) in fenced code blocks. Configurable via
+  `[bootstrap_signals.install_command_patterns]` and `[bootstrap_signals.test_command_patterns]`.
+- **`bootstrap_signals` component**: new 6th top-level component (12% default weight) bundling
+  the two scorers above. Option B per design — visible in the score breakdown table.
+- **Config schema v2**: `CURRENT_SCHEMA_VERSION` bumped from 1 to 2. Existing `.agentrepocoach.toml`
+  files must add `schema_version = 2` and `bootstrap_signals = 0.12` to `[weights]`.
+  See `docs/configuration.md` for the one-line migration recipe.
+- **8 new tests** covering CI-signal (absent, no-PR-trigger, with-PR-trigger), README-quality
+  (absent, install-only, full), config migration (v1 raises with recipe, v2 defaults), and
+  an AC-06 grep regression guard preventing shell-out calls in `bootstrap_signals.py`.
+
+### Changed
+
+- **Default weights rebalanced** to accommodate the new 6th component (sum remains 1.0):
+  - `navigability`: 0.25 → 0.22
+  - `error_quality`: 0.25 → 0.22
+  - `decision_queryability`: 0.20 → 0.18
+  - `test_quality`: 0.15 → 0.13
+  - `module_hygiene`: 0.15 → 0.13
+  - `bootstrap_signals`: new at 0.12
+
+### Security
+
+- README reads capped at 200 KB and 100 lines before any pattern matching (DoS guard).
+- CI workflow scans short-circuit at 50 files per glob pattern.
+- No shell-out, no eval, no exec — enforced via AC-06 grep regression test.
+
 ## [0.3.1] — 2026-05-24
 
 ### Fixed
