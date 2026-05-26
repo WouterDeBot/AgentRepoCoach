@@ -1,12 +1,20 @@
 {
   "tool": "agentrepocoach",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "description": "Compute the Codebase Agent Health (CAH) score for a repository.",
   "commands": [
     {
       "name": "agentrepocoach",
       "description": "Score a repository for AI-agent readiness.",
-      "usage": "agentrepocoach [OPTIONS]",
+      "usage": "agentrepocoach [OPTIONS] [PATH]",
+      "positional": [
+        {
+          "name": "path",
+          "type": "path",
+          "default": ".",
+          "description": "Path to the repository to score (positional shorthand for --repo)."
+        }
+      ],
       "flags": [
         {
           "name": "--repo",
@@ -23,9 +31,15 @@
         {
           "name": "--language",
           "type": "string",
-          "choices": ["auto", "csharp", "python", "typescript", "rust", "go"],
+          "choices": ["auto", "csharp", "go", "python", "rust", "typescript"],
           "default": "auto",
           "description": "Override language adapter detection."
+        },
+        {
+          "name": "--all-languages",
+          "type": "boolean",
+          "default": false,
+          "description": "Score all detected languages instead of only the primary one."
         },
         {
           "name": "--json",
