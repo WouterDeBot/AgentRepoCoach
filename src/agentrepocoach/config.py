@@ -9,10 +9,15 @@ or unreadable, defaults are used.
 """
 from __future__ import annotations
 
+import sys
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+# Module-level guard: emit the soft-upgrade warning at most once per process
+# per schema version encountered.
+_warned_schemas: set[int] = set()
 
 # Schema version — bump on breaking config changes.
 # v1 → v2: Added 6th component ``bootstrap_signals`` (ARC-005). Existing
@@ -211,18 +216,29 @@ def load_config(repo_root: Path, config_path: Path | None = None) -> Config:
 def _build_config_from_dict(raw: dict[str, Any]) -> Config:
     """Merge a parsed TOML dict into a Config with defaults applied."""
     schema_version = int(raw.get("schema_version", CURRENT_SCHEMA_VERSION))
-    if schema_version != CURRENT_SCHEMA_VERSION:
-        migration_recipe = (
-            "To migrate from v1 to v2: set ``schema_version = 2`` in your "
-            ".agentrepocoach.toml and add ``bootstrap_signals = 0.12`` to the "
-            "[weights] table (adjusting other weights to keep the sum at 1.0). "
-            "See docs/configuration.md for the full migration recipe."
-        )
-        msg = f"Unsupported schema_version {schema_version}. This tool requires schema_version {CURRENT_SCHEMA_VERSION}."
-        raise ConfigError(f"{msg} {migration_recipe}")
+    if schema_version > CURRENT_SCHEMA_VERSION:
+        msg = f"Unsupported schema_version {schema_version}. This tool supports schema_version {CURRENT_SCHEMA_VERSION}."
+        raise ConfigError(f"{msg} Try updating agentrepocoach or check the config file format at docs/configuration.md.")
+
+    if schema_version < CURRENT_SCHEMA_VERSION:
+        if schema_version not in _warned_schemas:
+            _warned_schemas.add(schema_version)
+            print(
+                f"agentrepocoach: WARNING: .agentrepocoach.toml uses schema_version {schema_version}; "
+                f"this tool ships schema_version {CURRENT_SCHEMA_VERSION}. Auto-upgrading in-memory; "
+                f"please bump your config and rebalance [weights]. See docs/configuration.md.",
+                file=sys.stderr,
+            )
 
     weights = dict(DEFAULT_WEIGHTS)
     weights.update(raw.get("weights", {}))
+
+    if schema_version < CURRENT_SCHEMA_VERSION:
+        current_sum = sum(weights.values())
+        if abs(current_sum - 1.0) > 0.01:
+            for k in weights:
+                weights[k] = weights[k] / current_sum
+
     _validate_weights(weights)
 
     return Config(

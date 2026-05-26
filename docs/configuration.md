@@ -61,6 +61,16 @@ The six weights must sum to **1.0**; AgentRepoCoach refuses to run if they
 don't. This is intentional — a silent drift would invalidate any
 cross-repo comparison of scores.
 
+**From v0.4.0 onward, agentrepocoach soft-upgrades older configs:** if your
+`.agentrepocoach.toml` still has `schema_version = 1`, the tool will print a
+one-shot warning to stderr and continue loading. Your existing five weights are
+proportionally rescaled so the new sixth component (`bootstrap_signals`) is
+included at its default value and the total stays at 1.0. You can suppress the
+warning by updating the file to `schema_version = 2` and explicitly rebalancing
+the `[weights]` table as shown above. Future schema versions that the installed
+tool does not recognise will still raise an error — you must upgrade the tool
+in that case.
+
 ## Full reference
 
 ```toml

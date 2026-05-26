@@ -105,15 +105,17 @@ domain_exception_types = ["FooError", "BarError"]
 
 # --- ARC-005: schema v2 migration tests ---
 
-def test_load_config_v1_raises_with_migration_recipe(tmp_path: Path) -> None:
-    """AC-03/AC-04: loading a v1 config raises ConfigError with migration recipe."""
+def test_load_config_v1_soft_upgrade_backwards_compat(tmp_path: Path) -> None:
+    """AC-03/AC-04 (updated): v1 config now soft-upgrades instead of raising.
+
+    The old strict-raise test is replaced by the soft-upgrade tests below.
+    This stub confirms the schema_version=1 path continues to load without
+    a ConfigError (the new contract after D-029 operator fix-path option a).
+    """
     (tmp_path / ".agentrepocoach.toml").write_text("schema_version = 1\n")
-    with pytest.raises(ConfigError) as exc_info:
-        load_config(tmp_path)
-    msg = str(exc_info.value)
-    assert "Unsupported schema_version 1" in msg
-    assert "schema_version = 2" in msg
-    assert "bootstrap_signals" in msg
+    config = load_config(tmp_path)
+    assert config.schema_version == 1
+    assert "bootstrap_signals" in config.weights
 
 
 def test_load_config_v2_default_has_six_weights() -> None:
@@ -131,3 +133,65 @@ def test_load_config_bootstrap_signals_defaults() -> None:
     assert "pytest" in config.bootstrap_signals.test_command_patterns
     assert "pip install" in config.bootstrap_signals.install_command_patterns
     assert config.bootstrap_signals.readme_head_lines == 100
+
+
+# --- D-029 soft-upgrade tests (operator fix-path option a) ---
+
+def test_load_config_v1_schema_warns_but_loads(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """D-029: v1 config emits a stderr warning but loads successfully (no raise)."""
+    import agentrepocoach.config as cfg_module
+    cfg_module._warned_schemas.discard(1)  # reset per-process guard for test isolation
+    (tmp_path / ".agentrepocoach.toml").write_text("schema_version = 1\n")
+    config = load_config(tmp_path)
+    captured = capsys.readouterr()
+    assert config is not None  # no ConfigError raised
+    assert "schema_version 1" in captured.err
+    assert "schema_version 2" in captured.err
+    assert "docs/configuration.md" in captured.err
+
+
+def test_load_config_v1_weights_rescale_to_sum_1(tmp_path: Path) -> None:
+    """D-029: v1 toml with 5 explicit weights summing to 1.0 is rescaled to 6 keys summing to ~1.0."""
+    import agentrepocoach.config as cfg_module
+    cfg_module._warned_schemas.discard(1)
+    toml_content = """\
+schema_version = 1
+
+[weights]
+navigability = 0.25
+error_quality = 0.25
+decision_queryability = 0.20
+test_quality = 0.15
+module_hygiene = 0.15
+"""
+    (tmp_path / ".agentrepocoach.toml").write_text(toml_content)
+    config = load_config(tmp_path)
+    assert len(config.weights) == 6
+    assert all(v >= 0 for v in config.weights.values())
+    assert sum(config.weights.values()) == pytest.approx(1.0, abs=0.01)
+
+
+def test_load_config_future_schema_still_raises(tmp_path: Path) -> None:
+    """D-029: future schema_version (>2) still raises ConfigError (forward-incompat guard)."""
+    (tmp_path / ".agentrepocoach.toml").write_text("schema_version = 99\n")
+    with pytest.raises(ConfigError, match="Unsupported schema_version"):
+        load_config(tmp_path)
+
+
+def test_load_config_v2_no_warning(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """D-029: valid v2 config emits no warning to stderr."""
+    toml_content = """\
+schema_version = 2
+
+[weights]
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
+"""
+    (tmp_path / ".agentrepocoach.toml").write_text(toml_content)
+    load_config(tmp_path)
+    captured = capsys.readouterr()
+    assert "WARNING" not in captured.err
