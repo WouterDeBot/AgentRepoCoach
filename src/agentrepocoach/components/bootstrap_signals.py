@@ -165,12 +165,18 @@ def _score_readme_quality(repo_root: Path, config: Config) -> dict[str, Any]:
     test_found = _any_matches(code_blocks, bsc.test_command_patterns)
 
     score = (25 if install_found else 0) + (25 if test_found else 0)
-    return {
+    result: dict[str, Any] = {
         "score": score,
         "total": _README_QUALITY_WEIGHT,
         "install_found": install_found,
         "test_found": test_found,
     }
+    if not install_found or not test_found:
+        result["note"] = (
+            f"scanned first {bsc.readme_head_lines} lines"
+            " (configure readme_head_lines in .agentrepocoach.toml to extend)"
+        )
+    return result
 
 
 def _extract_fenced_code_blocks(lines: list[str]) -> list[str]:
