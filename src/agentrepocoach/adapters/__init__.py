@@ -6,16 +6,18 @@ from pathlib import Path
 from .base import Declaration, LanguageAdapter, NotSupportedError, ThrowSite
 from .csharp import CSharpAdapter
 from .go import GoAdapter
+from .java import JavaAdapter
 from .python import PythonAdapter
 from .rust import RustAdapter
 from .typescript import TypeScriptAdapter
 
 _REGISTRY: dict[str, type[LanguageAdapter]] = {
     "csharp": CSharpAdapter,
+    "go": GoAdapter,
+    "java": JavaAdapter,
     "python": PythonAdapter,
     "typescript": TypeScriptAdapter,
     "rust": RustAdapter,
-    "go": GoAdapter,
 }
 
 
@@ -92,6 +94,7 @@ __all__ = [
     "CSharpAdapter",
     "Declaration",
     "GoAdapter",
+    "JavaAdapter",
     "LanguageAdapter",
     "NoAdapterError",
     "NotSupportedError",
