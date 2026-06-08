@@ -12,24 +12,25 @@ will routinely frustrate agents regardless of how capable those agents are.
 
 ## The composite formula
 
-    CAH = 0.25 * navigability
-        + 0.25 * error_quality
-        + 0.20 * decision_queryability
-        + 0.15 * test_quality
-        + 0.15 * module_hygiene
+    CAH = 0.22 * navigability
+        + 0.22 * error_quality
+        + 0.18 * decision_queryability
+        + 0.13 * test_quality
+        + 0.13 * module_hygiene
+        + 0.12 * bootstrap_signals
 
-Source: `src/agentrepocoach/config.py:23-29` (default weights) and
-`src/agentrepocoach/compute.py:49-51` (weighted summation loop).
+Source: `src/agentrepocoach/config.py:33-40` (default weights) and
+`src/agentrepocoach/compute.py:51-53` (weighted summation loop).
 
 Weights must sum to 1.0 (validated at config-load time,
-`src/agentrepocoach/config.py:196-205`). They are configurable per repo via
+`src/agentrepocoach/config.py:262-271`). They are configurable per repo via
 `.agentrepocoach.toml` under `[weights]`, but changing them breaks cross-repo
 comparability — the defaults exist to make apples-to-apples comparison
 meaningful.
 
 ### Why these weights?
 
-The 25/25/20/15/15 split encodes two heuristics, not empirical regression (no
+The 22/22/18/13/13/12 split encodes two heuristics, not empirical regression (no
 labelled dataset of "agent session success vs repo properties" exists yet):
 
 1. **Frequency of impact.** Navigability and error quality are the first two
@@ -38,18 +39,24 @@ labelled dataset of "agent session success vs repo properties" exists yet):
    because they dominate in practice.
 2. **Compounding vs. per-session.** Test quality and module hygiene compound
    across many sessions but rarely determine whether a single session succeeds
-   or fails. 15% each reflects that: enough to matter in the composite, not
+   or fails. 13% each reflects that: enough to matter in the composite, not
    enough to swamp the high-frequency components.
 
-Decision queryability sits between them at 20%: it matters enormously when an
+Decision queryability sits between them at 18%: it matters enormously when an
 agent is about to make an architectural change, but not at all for a
-routine bug fix. 20% is the average across task types.
+routine bug fix. 18% is the average across task types.
+
+Bootstrap signals at 12% was added in v0.4.0 as a structural prerequisite
+signal: CI configuration and README quality measure the foundational baseline
+a repo needs before agents can even run code. A repo that can't be installed
+or has no CI workflow is hostile to agents regardless of how well the other
+five components score.
 
 ---
 
 ## Components
 
-### 1. Navigability (25 pts of CAH)
+### 1. Navigability (22 pts of CAH)
 
 **What it measures.** Whether an agent arriving at an unfamiliar repository
 can orient itself without running `ls -R` and `grep` for fifteen minutes.
@@ -95,7 +102,7 @@ CI will typically score full marks here.
 
 ---
 
-### 2. Error quality (25 pts of CAH)
+### 2. Error quality (22 pts of CAH)
 
 **What it measures.** How actionable are the exceptions and error messages
 raised by production code? An agent reasoning about a failure needs to know
@@ -142,7 +149,7 @@ still counts as user-defined.
 
 ---
 
-### 3. Decision queryability (20 pts of CAH)
+### 3. Decision queryability (18 pts of CAH)
 
 **What it measures.** Whether an agent can discover *why* the code is the way
 it is — not just what it does. Specifically: does the repository maintain an
@@ -185,7 +192,7 @@ produce false references.
 
 ---
 
-### 4. Test quality (15 pts of CAH)
+### 4. Test quality (13 pts of CAH)
 
 **What it measures.** Whether an agent can read a test name and know what it
 asserts — without running the test or reading the test body. Also: whether the
@@ -229,7 +236,7 @@ empty stub files counts the same as a well-maintained fixtures library.
 
 ---
 
-### 5. Module hygiene (15 pts of CAH)
+### 5. Module hygiene (13 pts of CAH)
 
 **What it measures.** Whether the production module tree is organized with
 clear boundaries — internal types are marked internal, god files are rare,
@@ -273,6 +280,60 @@ keywords — a Python function without a leading underscore is classified
 line count including blanks and comments, which slightly inflates counts for
 heavily-commented files. Architecture doc freshness is based on file mtime,
 not content quality.
+
+---
+
+### 6. Bootstrap signals (12 pts of CAH)
+
+**What it measures.** Whether the repo has CI configured and whether the
+README explains how to install and test the project. These are the two
+prerequisites for any agent to bootstrap a working development environment.
+
+**WHY for agents — failure mode addressed.** An agent that cannot run tests
+cannot verify its changes. A CI signal tells the agent whether a PR-based
+workflow exists and provides an automated correctness gate. The README quality
+check (install + test commands in the first `readme_head_lines` lines, default
+100) measures whether a fresh agent can get to a runnable state from the README
+alone. Without these signals, agents must guess the build system, the test
+runner, and the PR workflow — which leads to broken-environment failures that
+have nothing to do with the agent's reasoning quality. Bootstrap signals were
+added in v0.4.0 as the sixth component because they function as a structural
+prerequisite: a repo scoring poorly here is hostile to agents regardless of
+how well the other five components score.
+
+**Sub-components and weights** (source: `src/agentrepocoach/components/bootstrap_signals.py`):
+
+| Sub-component | Max pts | What it checks | Line ref |
+|---|---:|---|---|
+| `ci_signal` | 50 | Does the repo have a CI workflow that runs on PRs? 30 pts for any workflow file; +20 pts when a workflow triggers on `pull_request:` or `pull_request_target:`. | L20, L56-89 |
+| `readme_quality` | 50 | Does the README contain a fenced install command AND a fenced test command within the first `readme_head_lines` lines (default 100)? 25 pts for install; 25 pts for test. | L21, L116-179 |
+
+**Note on the max-points key.** Bootstrap signals sub-component dicts use
+`"total"` as the max-points key (not `"max"` like all other components). Any
+code reading sub-component dicts must use:
+```python
+maximum = sub.get("total", sub.get("max", 0))
+```
+This is documented in `CLAUDE.md` as a codebase gotcha.
+
+**Calibration notes.** CI signal checks `.github/workflows/*.yml`,
+`.github/workflows/*.yaml`, `.gitlab-ci.yml`, and `.circleci/config.yml` by
+default (`config.py:154-159`). The PR-trigger detection covers three YAML
+forms: scalar (`on: pull_request`), flow sequence (`on: [pull_request, push]`),
+and block-map (`on:\n  pull_request:`). README quality scans only the first
+`readme_head_lines` lines (default 100; configurable via
+`[bootstrap_signals] readme_head_lines = N` in `.agentrepocoach.toml`) to
+keep the signal honest: a README that buries install instructions on page 3
+is not agent-friendly. Install and test command patterns are configurable via
+`install_command_patterns` and `test_command_patterns` in `[bootstrap_signals]`.
+
+**Limitations.** CI signal detection is a regex check on file content, not
+a semantic analysis of the workflow. A workflow that is technically present
+but always skipped, disabled, or gated behind a condition will still pass the
+structural check. README quality checks for fenced code blocks only — prose
+instructions (without backtick fences) do not count. The byte cap
+(`_README_BYTE_CAP = 200_000`) skips README scoring on extremely large files
+as a DoS guard.
 
 ---
 
@@ -341,7 +402,7 @@ understand design intent" than either signal alone.
 
 The composite score is a direction signal, not a grade. A score of 72 does
 not mean "72% of the way to being a good codebase" — it means "the weighted
-mix of five structural properties currently sits at 72, and the components
+mix of six structural properties currently sits at 72, and the components
 below their expected ceiling are the highest-leverage places to improve agent-
 friendliness."
 
@@ -354,19 +415,20 @@ improvement.
 **Example.** A Python repo scores:
 
 ```
-navigability:           85 / 100   (weight 0.25  →  21.25 pts)
-error_quality:          40 / 100   (weight 0.25  →  10.00 pts)
-decision_queryability:  60 / 100   (weight 0.20  →  12.00 pts)
-test_quality:           90 / 100   (weight 0.15  →  13.50 pts)
-module_hygiene:         75 / 100   (weight 0.15  →  11.25 pts)
+navigability:           85 / 100   (weight 0.22  →  18.70 pts)
+error_quality:          40 / 100   (weight 0.22  →   8.80 pts)
+decision_queryability:  60 / 100   (weight 0.18  →  10.80 pts)
+test_quality:           90 / 100   (weight 0.13  →  11.70 pts)
+module_hygiene:         75 / 100   (weight 0.13  →   9.75 pts)
+bootstrap_signals:      70 / 100   (weight 0.12  →   8.40 pts)
 ---
 CAH total:              68 / 100
 ```
 
 The coaching engine identifies `error_quality.hint_coverage` (gap: 60 pts,
-weight-adjusted impact: 15 pts) as the top fix. Adding `"Suggested fix: ..."
+weight-adjusted impact: 13.2 pts) as the top fix. Adding `"Suggested fix: ..."
 suffixes to half of the existing raise sites would push `error_quality` from
-40 to roughly 65, lifting the composite to around 75 — a 10-point gain from
+40 to roughly 65, lifting the composite to around 75 — a 7-point gain from
 one targeted change. The score does not tell you to rewrite anything; it
 tells you where the next agent session is most likely to be frustrated.
 
@@ -421,5 +483,3 @@ Source code for each component is in `src/agentrepocoach/components/`.
 Configuration reference is in `docs/configuration.md`. To propose a
 change to weights or thresholds, open a GitHub Discussion with evidence —
 the defaults are calibrated for cross-repo comparability.*
-
-STATUS: complete
