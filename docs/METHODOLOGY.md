@@ -54,6 +54,24 @@ five components score.
 
 ---
 
+### Evidence basis and validation status
+
+The weights above are heuristic — they encode reasoned priors, not fitted
+coefficients. Evidence quality varies significantly across components. The
+table below documents the current validation status so users can calibrate
+how much to trust each component's weight relative to their own context.
+
+| Component | Weight | Validation status | Evidence |
+|-----------|--------|------------------|----------|
+| navigability | 22% | **Empirically validated** | Score sensitivity confirmed: removing `docs/codebase-map.md` drops navigability 30 pts, composite 6.6 pts (XPL-013, 2026-06-08). External support: Aider repomap paper; AGENTS.md adoption studies. |
+| error_quality | 22% | **Theoretical mechanism** | Mechanism is sound (structured errors reduce exception-disambiguation tool calls) but no multi-repo correlation study or agent-transcript evidence exists yet. |
+| decision_queryability | 18% | **Observable proxy** | GATE_LOG events confirm agents reference decision records: 22 events with `rule: ADR-001`, 106 events with `DR-FE-*` refs in a single consumer. |
+| test_quality | 13% | **Theoretical mechanism** | Mechanism is sound (test coverage reduces agent self-verification loops) but no multi-repo correlation study exists yet. |
+| module_hygiene | 13% | **Theoretical mechanism** | Mechanism is sound (god-file and stale-import detection reduces surface area for agent mistakes) but no multi-repo correlation study exists yet. |
+| bootstrap_signals | 12% | **Conditionally validated** | Validated for public / multi-contributor repos. Use `repo_type = "private-internal"` in `.agentrepocoach.toml` to apply adjusted weights for private single-operator repos (see [configuration guide](configuration.md)). |
+
+---
+
 ## Components
 
 ### 1. Navigability (22 pts of CAH)
