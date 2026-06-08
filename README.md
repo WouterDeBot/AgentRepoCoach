@@ -200,6 +200,13 @@ Every output field is a count, percentage, type name, or file path —
 AgentRepoCoach never emits code snippets or raw message bodies, so reports
 are safe to publish as CI artifacts.
 
+## Methodology
+
+The full scoring methodology — including the composite formula, per-component
+rationale (the agent failure modes each component addresses), sub-component
+weights with source-code citations, calibration notes, and limitations — is
+documented in [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+
 ## License
 
 Apache 2.0. See [LICENSE](LICENSE).
