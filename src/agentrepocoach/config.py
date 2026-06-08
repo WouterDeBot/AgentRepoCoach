@@ -39,6 +39,13 @@ DEFAULT_WEIGHTS: dict[str, float] = {
     "bootstrap_signals": 0.12,
 }
 
+_PRIVATE_INTERNAL_WEIGHTS: dict[str, float] = {
+    **DEFAULT_WEIGHTS,
+    "bootstrap_signals": 0.06,
+    "navigability": 0.28,
+}
+_warned_repo_type_applied: bool = False
+
 DEFAULT_EXCLUDES: tuple[str, ...] = (
     "node_modules/**",
     "vendor/**",
@@ -187,6 +194,22 @@ class Config:
     test_quality: TestQualityConfig = field(default_factory=TestQualityConfig)
     module_hygiene: ModuleHygieneConfig = field(default_factory=ModuleHygieneConfig)
     bootstrap_signals: BootstrapSignalsConfig = field(default_factory=BootstrapSignalsConfig)
+    repo_type: str = ""
+
+
+def _warn_repo_type_once() -> None:
+    global _warned_repo_type_applied
+    if _warned_repo_type_applied:
+        return
+    _warned_repo_type_applied = True
+    print(
+        'agentrepocoach: INFO: repo_type = "private-internal" is set: '
+        "bootstrap_signals weight adjusted 0.12 → 0.06; "
+        "navigability adjusted 0.22 → 0.28. "
+        "Cross-repo comparisons with repos that do not set repo_type use "
+        "different baselines. See docs/configuration.md.",
+        file=sys.stderr,
+    )
 
 
 class ConfigError(ValueError):
@@ -230,8 +253,14 @@ def _build_config_from_dict(raw: dict[str, Any]) -> Config:
                 file=sys.stderr,
             )
 
-    weights = dict(DEFAULT_WEIGHTS)
+    repo_type = str(raw.get("repo_type", ""))
+    base_weights = dict(
+        _PRIVATE_INTERNAL_WEIGHTS if repo_type == "private-internal" else DEFAULT_WEIGHTS
+    )
+    weights = base_weights
     weights.update(raw.get("weights", {}))
+    if repo_type == "private-internal":
+        _warn_repo_type_once()
 
     if schema_version < CURRENT_SCHEMA_VERSION:
         current_sum = sum(weights.values())
@@ -256,6 +285,7 @@ def _build_config_from_dict(raw: dict[str, Any]) -> Config:
         test_quality=_build_test_quality_config(raw.get("test_quality", {})),
         module_hygiene=_build_module_hygiene_config(raw.get("module_hygiene", {})),
         bootstrap_signals=_build_bootstrap_signals_config(raw.get("bootstrap_signals", {})),
+        repo_type=repo_type,
     )
 
 
