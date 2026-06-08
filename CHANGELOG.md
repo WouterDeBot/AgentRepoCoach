@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] — 2026-06-08
+
+### Added
+
+- **`repo_type` config key** (`.agentrepocoach.toml`): set `repo_type = "private-internal"` to
+  apply weight defaults tuned for private or single-operator repos. Effect: `bootstrap_signals`
+  weight adjusted 0.12 → 0.06; `navigability` adjusted 0.22 → 0.28. An INFO advisory is printed
+  to stderr on first use. Explicit `[weights]` overrides take precedence. Cross-repo comparability
+  note printed in advisory. (PR #13, closes #11)
+- **METHODOLOGY.md private-repo subsection**: documents the `readme_quality` interpretation
+  difference for private repos and explains the `repo_type` calibration option.
+
 ## [0.4.1] — 2026-06-08
 
 ### Fixed
