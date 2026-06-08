@@ -76,6 +76,15 @@ in that case.
 ```toml
 schema_version = 2
 
+# Optional: hint for private/single-operator repos.
+# When set to "private-internal", the bootstrap_signals default weight is
+# reduced from 0.12 to 0.06 and the 0.06 is redistributed to navigability
+# (0.22 → 0.28). An INFO advisory is printed to stderr on first use.
+# Note: breaks cross-repo score comparability when the target repo uses
+# a different repo_type.
+# Valid values: "private-internal" (any other value is ignored)
+repo_type = "private-internal"
+
 [weights]
 navigability = 0.22
 error_quality = 0.22
@@ -136,6 +145,22 @@ test_command_patterns = [
 # Number of README lines to scan. Increase if your install instructions appear later.
 readme_head_lines = 100
 ```
+
+## repo_type — private and internal repos
+
+```toml
+repo_type = "private-internal"
+```
+
+Set this hint when scoring a private or single-operator framework repo where
+the README install/test blocks are written for external consumers rather than
+the operator who runs the tool daily. Effect: `bootstrap_signals` weight
+adjusted 0.12 → 0.06; `navigability` adjusted 0.22 → 0.28. An INFO advisory
+is printed to stderr once per process.
+
+**Note:** this changes score comparability. Repos scored with `repo_type =
+"private-internal"` use a different weight profile than repos without it.
+Do not compare raw CAH scores across repos with different `repo_type` settings.
 
 ## How the defaults were picked
 

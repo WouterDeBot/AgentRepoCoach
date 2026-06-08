@@ -335,6 +335,24 @@ instructions (without backtick fences) do not count. The byte cap
 (`_README_BYTE_CAP = 200_000`) skips README scoring on extremely large files
 as a DoS guard.
 
+**Private and single-operator repos.** The `readme_quality` sub-component
+(50 pts of `bootstrap_signals`) rewards README content — install and test
+fenced code blocks — that is primarily useful for a *first-time external user*
+orienting themselves in a fresh clone. For a private repo used by a single
+operator who already knows how to install and run the project, these blocks
+are a one-time papercut fix (five README lines) that improves documentation
+without meaningfully changing day-to-day agent session quality.
+
+The fix is quick: adding `` ```bash pip install -e . ``` `` and
+`` ```bash pytest tests/ ``` `` in the first 100 README lines earns the full
+50 pts. If you prefer not to add documentation that isn't genuinely useful to
+your workflow, you can lower the `bootstrap_signals` weight via `[weights]` or
+set `repo_type = "private-internal"` in `.agentrepocoach.toml` to apply a
+reduced default weight (0.06 instead of 0.12, with the 0.06 redistributed to
+`navigability`). Be aware that this breaks cross-repo comparability with repos
+that use the default weights — scores are only directly comparable when the
+weight profiles match.
+
 ---
 
 ## Decision queryability — the differentiating angle

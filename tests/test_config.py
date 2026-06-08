@@ -195,3 +195,83 @@ bootstrap_signals = 0.12
     load_config(tmp_path)
     captured = capsys.readouterr()
     assert "WARNING" not in captured.err
+
+
+# --- GH-011: repo_type private-internal weight hint tests ---
+
+def test_repo_type_private_internal_adjusts_bootstrap_signals(tmp_path: Path) -> None:
+    """repo_type=private-internal halves bootstrap_signals default weight."""
+    import agentrepocoach.config as m
+    m._warned_repo_type_applied = False
+    (tmp_path / ".agentrepocoach.toml").write_text('repo_type = "private-internal"\n')
+    config = load_config(tmp_path)
+    assert config.weights["bootstrap_signals"] == pytest.approx(0.06, abs=1e-9)
+    assert config.weights["navigability"] == pytest.approx(0.28, abs=1e-9)
+    assert sum(config.weights.values()) == pytest.approx(1.0, abs=0.01)
+
+
+def test_repo_type_private_internal_stores_on_config(tmp_path: Path) -> None:
+    """Config.repo_type is set when parsed from toml."""
+    import agentrepocoach.config as m
+    m._warned_repo_type_applied = False
+    (tmp_path / ".agentrepocoach.toml").write_text('repo_type = "private-internal"\n')
+    config = load_config(tmp_path)
+    assert config.repo_type == "private-internal"
+
+
+def test_repo_type_private_internal_prints_advisory(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """repo_type=private-internal emits INFO advisory to stderr."""
+    import agentrepocoach.config as m
+    m._warned_repo_type_applied = False
+    (tmp_path / ".agentrepocoach.toml").write_text('repo_type = "private-internal"\n')
+    load_config(tmp_path)
+    err = capsys.readouterr().err
+    assert "private-internal" in err
+    assert "bootstrap_signals" in err
+    assert "navigability" in err
+
+
+def test_repo_type_private_internal_advisory_emitted_once(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Advisory is printed only once per process (process guard)."""
+    import agentrepocoach.config as m
+    m._warned_repo_type_applied = False
+    toml = (tmp_path / ".agentrepocoach.toml")
+    toml.write_text('repo_type = "private-internal"\n')
+    load_config(tmp_path)
+    load_config(tmp_path)
+    err = capsys.readouterr().err
+    assert err.count("private-internal") == 1
+
+
+def test_repo_type_private_internal_explicit_weight_override(tmp_path: Path) -> None:
+    """Explicit [weights] section overrides the private-internal default."""
+    import agentrepocoach.config as m
+    m._warned_repo_type_applied = False
+    toml_text = """\
+repo_type = "private-internal"
+
+[weights]
+navigability = 0.22
+error_quality = 0.22
+decision_queryability = 0.18
+test_quality = 0.13
+module_hygiene = 0.13
+bootstrap_signals = 0.12
+"""
+    (tmp_path / ".agentrepocoach.toml").write_text(toml_text)
+    config = load_config(tmp_path)
+    # Explicit weights override the private-internal defaults
+    assert config.weights["bootstrap_signals"] == pytest.approx(0.12, abs=1e-9)
+    assert config.weights["navigability"] == pytest.approx(0.22, abs=1e-9)
+
+
+def test_repo_type_absent_uses_default_weights(tmp_path: Path) -> None:
+    """Without repo_type, default weights apply unchanged."""
+    config = load_config(tmp_path)  # no toml file
+    assert config.weights["bootstrap_signals"] == pytest.approx(0.12, abs=1e-9)
+    assert config.weights["navigability"] == pytest.approx(0.22, abs=1e-9)
+    assert config.repo_type == ""
