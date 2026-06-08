@@ -165,6 +165,69 @@ def test_readme_quality_full_scores_max() -> None:
 
 # --- ARC-005: CI-signal sub-score tests (AC-01) ---
 
+def test_readme_quality_note_when_install_missing(tmp_path: Path) -> None:
+    """GH-009 Bug 2: note surfaced in breakdown when install not found."""
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "# Project\n\n## Usage\n\n```bash\npytest\n```\n",
+        encoding="utf-8",
+    )
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(tmp_path, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    assert rq["install_found"] is False
+    assert "note" in rq
+    assert "scanned first" in rq["note"]
+    assert ".agentrepocoach.toml" in rq["note"]
+
+
+def test_readme_quality_note_when_test_missing(tmp_path: Path) -> None:
+    """GH-009 Bug 2: note surfaced in breakdown when test not found."""
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        "# Project\n\n## Install\n\n```bash\npip install myproject\n```\n",
+        encoding="utf-8",
+    )
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(tmp_path, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    assert rq["test_found"] is False
+    assert "note" in rq
+    assert "scanned first" in rq["note"]
+
+
+def test_readme_quality_no_note_when_both_found() -> None:
+    """GH-009 Bug 2: no note when both install and test commands are found."""
+    fixture = FIXTURES / "sample-readme-quality"
+    config = Config()
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(fixture, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    assert rq["install_found"] is True
+    assert rq["test_found"] is True
+    assert "note" not in rq
+
+
+def test_readme_quality_note_reflects_custom_head_lines(tmp_path: Path) -> None:
+    """GH-009 Bug 2: note reflects readme_head_lines config value."""
+    import dataclasses
+
+    readme = tmp_path / "README.md"
+    readme.write_text("# Project\n", encoding="utf-8")
+    base = Config()
+    bsc = dataclasses.replace(base.bootstrap_signals, readme_head_lines=200)
+    config = dataclasses.replace(base, bootstrap_signals=bsc)
+    adapter = PythonAdapter()
+    result = compute_bootstrap_signals(tmp_path, config, adapter)
+    rq = result["breakdown"]["readme_quality"]
+    assert "note" in rq
+    assert "200" in rq["note"]
+
+
+# --- ARC-005: CI-signal sub-score tests (AC-01) ---
+
 def test_ci_signal_absent_scores_zero() -> None:
     """AC-01: repo with no CI artifacts scores 0 on ci_signal."""
     fixture = FIXTURES / "sample-ci-signal-absent"
