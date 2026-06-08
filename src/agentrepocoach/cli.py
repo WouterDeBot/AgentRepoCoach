@@ -10,6 +10,7 @@ from . import VERSION
 from .adapters import NoAdapterError, _REGISTRY
 from .compute import compute_cah, compute_cah_all
 from .config import Config, ConfigError, load_config
+from .init_cmd import run_init
 from .output import (
     format_comparison,
     format_comparison_markdown,
@@ -90,6 +91,26 @@ def build_parser() -> argparse.ArgumentParser:
     # Subcommands
     subparsers = parser.add_subparsers(dest="subcommand")
 
+    # init subcommand
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Create a .agentrepocoach.toml config file with sensible defaults.",
+    )
+    init_parser.add_argument(
+        "--repo-type",
+        dest="repo_type",
+        default="",
+        metavar="REPO_TYPE",
+        help="Set repo_type in the generated config (e.g. 'private-internal'). "
+             "Default: omitted (uses 'default' behaviour).",
+    )
+    init_parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path(".agentrepocoach.toml"),
+        help="Output path for the generated config file (default: .agentrepocoach.toml).",
+    )
+
     # compare subcommand
     compare_parser = subparsers.add_parser(
         "compare",
@@ -159,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
     # the rest normally. This preserves full backward-compat with `--repo` and
     # with subcommands like `compare`.
     _argv = list(argv) if argv is not None else sys.argv[1:]
-    _known_subcommands = {"compare"}
+    _known_subcommands = {"compare", "init"}
     _positional_path: Path | None = None
     if _argv and not _argv[0].startswith("-") and _argv[0] not in _known_subcommands:
         _positional_path = Path(_argv[0])
@@ -168,6 +189,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(_argv)
 
     # Dispatch subcommands
+    if args.subcommand == "init":
+        return run_init(args.output.resolve(), args.repo_type)
+
     if args.subcommand == "compare":
         return _run_compare(args)
 
