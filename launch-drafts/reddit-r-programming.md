@@ -51,6 +51,6 @@ The weights are heuristic (I couldn't find a labelled dataset of
 **cases where the score is wrong** — repos that score low but are
 actually great, or the reverse.
 
-Apache 2.0, v0.4.0. Feedback very welcome.
+Apache 2.0, v0.4.1. Feedback very welcome.
 
 Repo: <REPO_URL>

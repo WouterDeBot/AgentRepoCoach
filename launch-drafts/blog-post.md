@@ -127,9 +127,9 @@ to 90.
 
 ## Roadmap
 
-v0.4.0 is a more mature state but still pre-1.0 (v0.x). The rough
+v0.4.1 is a more mature state but still pre-1.0 (v0.x). The rough
 edges are real but the tool is dogfooded against its own repo (95.32/100)
-and has 155 tests:
+and has 169 tests:
 
 - [x] C#, Python, TypeScript, Go, Rust adapters (all full MVP since v0.2.0)
 - [x] GitHub Action + CLI

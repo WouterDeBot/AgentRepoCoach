@@ -40,6 +40,6 @@ where the score is wrong: repos that score low but are actually great to
 work in, or repos that score high but are actually terrible. Either means
 my heuristics need work, and I want to know which way.
 
-Apache 2.0, v0.4.0. Some rough edges expected. The repo has a GitHub
+Apache 2.0, v0.4.1. Some rough edges expected. The repo has a GitHub
 Action you can drop into any workflow in about 10 lines, and the CLI
 installs with `pip install agentrepocoach`.
