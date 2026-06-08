@@ -470,6 +470,46 @@ tells you where the next agent session is most likely to be frustrated.
 
 ---
 
+## Performance
+
+AgentRepoCoach uses regex-only analysis (see [ADR-003](adr/ADR-003-regex-only-analysis.md)) — no AST parsing, no code execution. This means runtime scales linearly with file count, not with code complexity or nesting depth.
+
+Benchmark results on a modern laptop (Apple M-series), measured with
+`scripts/benchmark.py` against synthetic Python repos:
+
+| Files | Wall time | Score (synthetic) |
+|------:|----------:|------------------:|
+| 100 | 0.08 s | 32.8 |
+| 1,000 | 0.23 s | 32.8 |
+| 5,000 | 0.92 s | 32.8 |
+
+Timing includes subprocess startup and Python import overhead, so the
+numbers represent a realistic upper bound for CI usage. The constant score
+across sizes reflects that the synthetic repos have the same structural
+signals regardless of module count — real repos with more files tend to
+score higher on error quality and test quality as these components are
+averaged across all raise/test sites.
+
+**Guidance for large repos.** For repos with more than 5,000 files,
+consider using `--language` to skip language detection overhead
+(detection scans all files to determine the primary language; specifying
+it explicitly avoids this pass). Example:
+
+```bash
+agentrepocoach --repo . --language python
+```
+
+To reproduce the benchmark, run:
+
+```bash
+python scripts/benchmark.py
+```
+
+The script is stdlib-only and generates all test data in a temporary
+directory, leaving no files behind.
+
+---
+
 ## References and inspiration
 
 1. **AGENTS.md spec** — https://agents.md — The community standard for
