@@ -1,0 +1,8 @@
+{"ts":"2026-06-08T06:04:07Z","agent_id":"a5d2aca36e3e7ec12","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"evidence_insufficient","tail_hash":"c78a0936ad692b30"}
+{"ts":"2026-06-08T06:28:08Z","agent_id":"af95c1bd050afb242","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"report_present","tail_hash":"263836b5aa45ac9e"}
+{"ts":"2026-06-08T06:28:51Z","agent_id":"af95c1bd050afb242","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"report_present","tail_hash":"04aaaf53327f58b5"}
+{"ts":"2026-06-08T06:43:40Z","agent_id":"a7bfee754c9a08bd3","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"evidence_insufficient","tail_hash":"c18f5258e3d59f60"}
+{"ts":"2026-06-08T10:40:05Z","agent_id":"a7befdb49cfd4de19","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"report_present","tail_hash":"dd1880bad5443811"}
+{"ts":"2026-06-08T11:28:23Z","agent_id":"ab81e0089768eeea9","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"evidence_insufficient","tail_hash":"a42b0a145517e5c6"}
+{"ts":"2026-06-08T17:42:55Z","agent_id":"a2b71627a30cb2a5f","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"evidence_insufficient","tail_hash":"41bf39e13f336014"}
+{"ts":"2026-06-08T17:48:50Z","agent_id":"a688613c9ec30b492","tool_uses":null,"total_tokens":null,"suspected":false,"signal":"evidence_insufficient","tail_hash":"533b4ee7e9f0baa1"}
