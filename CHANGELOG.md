@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-06-08
+
+### Added
+
+- **Java language adapter**: `agentrepocoach` can now score Java repositories. Detection
+  via `pom.xml`, `build.gradle`, or `*.java` files. Scores error quality (`throw new` sites
+  with Javadoc hints), decision queryability (public class/method/interface declarations),
+  test quality (JUnit 4/5 `@Test` detection, `*Test.java`/`Test*.java` naming), and navigability.
+  12 new tests; 187 total. Java fixture repo included in test suite. (PR #18)
+- **METHODOLOGY.md validation-status table**: component table now includes an "Evidence basis"
+  column documenting empirical vs theoretical validation status for all 6 CAH components.
+  Helps users calibrate confidence in each component's score signal. (PR #17)
+
 ## [0.4.2] — 2026-06-08
 
 ### Added
@@ -144,7 +157,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Regex ReDoS audit (informal — formal audit deferred to v0.2)
 - JSON output contains no source code snippets, only counts, paths, and identifiers
 
-[Unreleased]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.4.2...v0.5.0
+[0.4.2]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.3.0...v0.3.1
