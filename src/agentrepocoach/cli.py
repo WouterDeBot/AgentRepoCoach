@@ -10,6 +10,7 @@ from . import VERSION
 from .adapters import NoAdapterError, _REGISTRY
 from .compute import compute_cah, compute_cah_all
 from .config import Config, ConfigError, load_config
+from .history_cmd import run_history
 from .init_cmd import run_init
 from .output import (
     format_comparison,
@@ -111,6 +112,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output path for the generated config file (default: .agentrepocoach.toml).",
     )
 
+    # history subcommand
+    parser_history = subparsers.add_parser(
+        "history",
+        help="Show CAH score trend across recent commits.",
+    )
+    parser_history.add_argument(
+        "--count",
+        type=int,
+        default=5,
+        metavar="N",
+        help="Number of recent commits to score (default: 5, max: 20).",
+    )
+    parser_history.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format: 'table' (default) or 'json'.",
+    )
+    parser_history.set_defaults(func=run_history)
+
     # compare subcommand
     compare_parser = subparsers.add_parser(
         "compare",
@@ -180,7 +201,7 @@ def main(argv: list[str] | None = None) -> int:
     # the rest normally. This preserves full backward-compat with `--repo` and
     # with subcommands like `compare`.
     _argv = list(argv) if argv is not None else sys.argv[1:]
-    _known_subcommands = {"compare", "init"}
+    _known_subcommands = {"compare", "history", "init"}
     _positional_path: Path | None = None
     if _argv and not _argv[0].startswith("-") and _argv[0] not in _known_subcommands:
         _positional_path = Path(_argv[0])
@@ -194,6 +215,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.subcommand == "compare":
         return _run_compare(args)
+
+    if args.subcommand == "history":
+        return run_history(args)
 
     # Resolve repo path: --repo wins over positional; default is cwd.
     if args.repo is not None and _positional_path is not None:
