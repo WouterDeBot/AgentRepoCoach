@@ -360,7 +360,7 @@ def format_verbose(result: dict[str, Any]) -> str:
         lines.append(f"\n[{name}] {component['score']:.2f} / 100")
         for sub_name, sub in component.get("breakdown", {}).items():
             score = sub.get("score", 0)
-            maximum = sub.get("max", 0)
-            extras = {k: v for k, v in sub.items() if k not in {"score", "max"}}
+            maximum = sub.get("total", sub.get("max", 0))
+            extras = {k: v for k, v in sub.items() if k not in {"score", "total", "max"}}
             lines.append(f"  - {sub_name:30s} {score:6.2f} / {maximum:<3}   {extras}")
     return "\n".join(lines)
