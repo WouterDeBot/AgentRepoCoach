@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-06-08
+
+### Fixed
+
+- **`--verbose` denominator `/0` bug** (`bootstrap_signals` sub-components): the verbose output
+  formatter read `entry["total"]` but `bootstrap_signals` sub-components store the denominator
+  under `entry["max"]`, producing `/0` for every sub-score in the breakdown table. The formatter
+  now falls back to `entry.get("max", entry.get("total", 0))` so both key shapes are handled
+  correctly. (PR #10, closes #9)
+
+### Improved
+
+- **`--verbose` README-quality diagnostic note**: when `install_found=False` or `test_found=False`
+  in the `readme_quality` sub-component, the verbose output now prints a note showing how many
+  lines were scanned (controlled by `readme_head_lines` in `.agentrepocoach.toml`, default 100)
+  and hints the user can raise the limit via that config key to cover longer READMEs.
+
 ## [0.4.0] — 2026-05-26
 
 ### Added
@@ -115,7 +132,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Regex ReDoS audit (informal — formal audit deferred to v0.2)
 - JSON output contains no source code snippets, only counts, paths, and identifiers
 
-[Unreleased]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/WouterDeBot/agentrepocoach/compare/v0.2.0...v0.3.0
