@@ -97,9 +97,9 @@ cli_manifest_max_age_days = 7
 root_allowlist = ["README.md", "LICENSE", "pyproject.toml", ".gitignore"]
 
 [error_quality]
-fix_hint_marker = "fix:"
+hint_marker = "Suggested fix:"
+domain_exception_base = ""
 domain_exception_types = ["DomainError", "ValidationError", "NotFoundError"]
-generic_exception_ceiling = 0.20
 
 [decision_queryability]
 adr_min_count = 3
@@ -144,8 +144,9 @@ readme_head_lines = 100
   as the top priorities.
 - **CLI manifest 7-day freshness window**: short enough to catch manifests
   that fell out of sync with the CLI, long enough to tolerate one week off.
-- **Generic exception ceiling 20%**: in practice, well-typed codebases land
-  below 10%; 20% is the "you have work to do but it isn't on fire" line.
+- **`hint_marker` default `"Suggested fix:"`**: the error_quality component
+  counts throw sites that include this string as "hinted" errors. Override with
+  your team's convention (e.g. `"TODO:"`, `"Fix:"`).
 - **God file LOC ceiling 500**: conservative; many teams pick 300 or 800.
   Tune it in your own config if your codebase has a different convention.
 - **Architecture doc 60-day freshness**: long enough that weekly commits
